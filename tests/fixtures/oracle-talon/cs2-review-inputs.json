@@ -1,0 +1,73 @@
+{
+  "_provenance": "All silhouette numbers are measured by forge/stage4_review/diagnose_render.py on renders/pass-final/front.png against renders/refplate/reference-front-1600.png (background-matched, 1600x900). Feature and region scores are agent-vision judgements against renders/pass-final/cmp-front.png, stated per the render_capture.md scorecard.",
+  "silhouetteIoU": 0.9654,
+  "aspectRatioDelta": 0.0149,
+  "scaleDelta": 0.0147,
+  "silhouetteIoUBack": 0.9559,
+  "finishMaterialResponse": 0.85,
+  "identityDetail": 0.9,
+  "_finishNote": "Measured region medians vs reference: ruby [135,20,25] vs [127,24,27] (dV +8, dS +10); ivory [163,162,160] vs [162,162,159] (dV +1, dS +1); brass [92,79,42] vs [122,106,64] (dV -30, dS +30). Divine Eye tonalParity 0.9578. Brass is 0.5% of frame and its hue-mask median is unstable under saturation change, so it is reported rather than treated as a confident 30-unit error.",
+  "paintedRegions": [
+    {
+      "id": "blade-painted",
+      "score": 0.9,
+      "confidence": 0.88,
+      "note": "de-lit front/back plates projected through the traced image->world mapping; measured ruby median within dV +8 / dS +10 of reference"
+    },
+    {
+      "id": "tang-exposed-painted",
+      "score": 0.82,
+      "confidence": 0.35,
+      "note": "the tang is OCCLUDED by the scales in both views; its painted extent is inferred, not observed"
+    },
+    {
+      "id": "pommel-ring-painted",
+      "score": 0.85,
+      "confidence": 0.85,
+      "note": "ruby coat continues onto the ring (reference crop share 0.96, median [89,12,17]); modelled with the solid measured ruby, not a plate, because the ring's own pixels are a thin arc"
+    }
+  ],
+  "_regionsNotApplicable": [
+    "guard-bare-metal and guard_quillon: the cs2-knife-v1 adapter and the knife_review_scene fixture both list a guard/quillon. A Talon has NO crossguard - the blade runs straight into the scaled tang - so these are reported not-applicable rather than scored as passing on a part that does not exist."
+  ],
+  "criticalFeatures": [
+    { "id": "hawkbill-silhouette", "score": 0.95, "threshold": 0.75, "note": "IoU 0.9654 front / 0.9559 back; aspect 2.908 render vs 2.883 reference" },
+    { "id": "spine-sawtooth-band", "score": 0.9, "threshold": 0.7, "note": "5 teeth at measured irregular pitches 64/61/69/139px, raked ratchet form, present in the traced outline as real geometry" },
+    { "id": "blade-hole-triad", "score": 0.95, "threshold": 0.75, "note": "3 real openings, radii 0.0245/0.0291/0.0388 world, growing toward the handle" },
+    { "id": "ruby-finish-response", "score": 0.85, "threshold": 0.7, "note": "projection route; gradient direction and crimson wisps read; measured dV +8 / dS +10. Residual: the spine specular is softer than the reference's" },
+    { "id": "grip-hardware-layout", "score": 0.88, "threshold": 0.7, "note": "7 rivets/side at measured positions, medallion with neutral-grey inlay + 4 spokes, 2 spacers with the aft one raked 12deg" },
+    { "id": "blade-cross-section-realism", "score": 0.82, "threshold": 0.6, "note": "variable-thickness loft; bladeBody distinct-Z 42 (a slab lands <=10); holds at three-quarter (ratio 0.880) and orbit-035 (0.929)" },
+    { "id": "tang-and-seam-continuity", "score": 0.75, "threshold": 0.6, "note": "blade->tang->ring is one continuous body with >=0.02 world seam overlap; the tang itself is inferred (confidence 0.35)" }
+  ],
+  "projection": {
+    "required": true,
+    "coverage": 0.92,
+    "source": "evidence/delit-regionwise-front.png + delit-regionwise-back.png",
+    "method": "mean-preserving per-region de-light, then planar projection that algebraically inverts the tracer's image->world mapping",
+    "note": "Coverage is 0.92 not 1.0: the broad +Z and -Z faces carry the plates, but walls, the ground bevel and hole interiors take a solid measured ruby because no reference pixel exists for a surface the camera never saw."
+  },
+  "multiAngle": {
+    "degenerate": false,
+    "collapseRatio": 0.15,
+    "angles": [
+      { "name": "orbit-035", "ratio": 0.929, "degenerate": false },
+      { "name": "orbit-325", "ratio": 0.881, "degenerate": false },
+      { "name": "orbit-180", "ratio": 1.007, "degenerate": false },
+      { "name": "three-quarter", "ratio": 0.88, "degenerate": false }
+    ],
+    "note": "The +-90 edge-on frames are excluded: the forge segmenter returns areaFraction 0.0 for them, while direct pixel measurement finds a real 97x545 sliver at 3.28% of frame. That is a segmentation limit on a 19:1 flat subject, not a collapsed volume - and a flat plane would also read ~0 at 90deg, so that angle cannot discriminate. The four angles above can, and none is degenerate."
+  },
+  "approximationNotes": [
+    "Every Z/thickness value is an inference: both references are broadside. bladeHalfStock 0.021, tangHalf 0.019, scaleHalf 0.019 (confidence 0.35).",
+    "Blade grind type modelled flat/sabre; hollow-vs-flat is not resolvable from a broadside (confidence 0.45).",
+    "The tang between blade base and ring is fully occluded; authored as a 62% vertical inset of the traced scale outline so blade and ring stay one body (confidence 0.35).",
+    "Rivet heads modelled as shallow domes; a broadside cannot separate a low dome from a flat pin (confidence 0.40).",
+    "Spacer strips modelled full-depth through the scale (confidence 0.40).",
+    "Ring bore chamfer profile not observable (confidence 0.40).",
+    "Paint seed and float are NOT recoverable from an image: fixed centred pattern placement and a Factory-New wear approximation, both marked approximated.",
+    "The ruby peak band's red channel is clipped at 255 in the source, so its true radiance is unknown and cannot be matched exactly.",
+    "Tone mapping is 'neutral' at exposure 0.70, chosen by a measured 16-way sweep. The registry documents 'agx' for a Ruby-Doppler blade, which is right for a procedural finish but was the WORST of 16 combinations here (dV +50 / dS -79) because the projected plate already carries the appearance.",
+    "The knife_review_scene fixture records environment.toneMapping as ACESFilmic; this build renders with NeutralToneMapping. The fixture's value is recorded scene metadata for the fixture itself and is not compared against the render, but the divergence is stated rather than left implicit.",
+    "Two small brass blobs appear on the BACK view only at (390,939) r 9.9 and (428,941) r 8.9 with no mirrored front counterpart. NOT modelled as hardware - recorded as an unexplained observation rather than invented as a part (confidence 0.30)."
+  ]
+}

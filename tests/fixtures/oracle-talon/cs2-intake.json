@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "state": "proceed",
+  "sourceViews": [
+    {
+      "role": "front",
+      "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+      "hash": 18347940451214977680,
+      "width": 2560,
+      "height": 1440,
+      "coverage": 0.2097,
+      "duplicate": false
+    },
+    {
+      "role": "back",
+      "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-back.png",
+      "hash": 17771475369051842768,
+      "width": 2560,
+      "height": 1440,
+      "coverage": 0.2097,
+      "duplicate": false
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "reasons": [],
+    "provenance": {
+      "viewpoint": "reference",
+      "sourcePath": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+      "width": 2560,
+      "height": 1440,
+      "foregroundCoverage": 0.2097,
+      "largestComponentFraction": 1.0,
+      "pHash": 18347940451214977680,
+      "duplicateOfHash": null
+    }
+  },
+  "probe": {
+    "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+    "type": "png",
+    "bytes": 1138300,
+    "width": 2560,
+    "height": 1440,
+    "aspectRatio": 1.7777777777777777,
+    "technicalSuitability": "pass",
+    "warnings": [],
+    "note": "This is only technical image probing. Semantic object suitability still requires visual inspection."
+  },
+  "heuristicSignal": {
+    "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+    "is_cs2_candidate": true,
+    "confidence": 0.55,
+    "signals": [
+      "aspect_ratio_matches:knife_folder,pistol_angle",
+      "wide_format_workshop_render",
+      "neutral_background_steam_style",
+      "typical_render_file_size"
+    ],
+    "weapon_categories": [
+      "knife_folder",
+      "pistol_angle"
+    ],
+    "dimensions": {
+      "width": 2560,
+      "height": 1440,
+      "aspectRatio": 1.778
+    },
+    "color_profile": {
+      "dominant_range": "neutral_grey",
+      "energy": 218.77
+    },
+    "note": "This is a heuristic pre-analysis guard using file metadata and basic byte statistics. It does NOT perform visual analysis. The agent's vision layer (Step 1) performs definitive CS2 identification using the M.C.M.T framework in grimoire/intake/cs2_technical_analysis.md"
+  },
+  "exactnessTier": "image-only",
+  "route": "reference-projection",
+  "textureSource": "image-only",
+  "identity": {
+    "status": "resolved",
+    "identity": {
+      "itemFamily": "knife",
+      "subtype": "talon",
+      "confidence": 0.93,
+      "evidenceRefs": [
+        ".img2threejs/talon/refs/talon-front.png",
+        ".img2threejs/talon/refs/talon-back.png",
+        ".img2threejs/talon/evidence/reference-measurements.json",
+        ".img2threejs/talon/evidence/suitability-and-classification.md"
+      ],
+      "provider": "agent-vision/claude-opus-5",
+      "version": "1",
+      "timedOut": false,
+      "discriminatingEvidence": [
+        "closed circular finger ring at the butt, bore circularity 0.986 -> karambit/talon family",
+        "hawkbill blade with the cutting edge on the concave inner curve",
+        "three graduated circular through-holes in the blade flat (r 25.7 / 30.5 / 40.7 px, circularity 0.98-1.02) -> Talon marker, absent on Karambit",
+        "sawtooth jimping band on the upper spine (dark notch components at (876,484) and (889,454))",
+        "broad-bellied hawkbill rather than the Karambit's narrower, more sharply recurved blade"
+      ],
+      "candidates": [
+        {
+          "subtype": "talon",
+          "confidence": 0.93
+        },
+        {
+          "subtype": "karambit",
+          "confidence": 0.06
+        }
+      ],
+      "notes": "Classification owns semantic identity only; it does not set geometry or finish parameters. detect_cs2.py (is_cs2_candidate true, 0.55) was recorded as a non-authoritative routing hint only."
+    },
+    "provenance": "classification-record"
+  },
+  "finish": {
+    "provenance": "visual-observation+measured-pixels",
+    "confidence": 0.88,
+    "finishStyle": "anodized-multicolored",
+    "family": "doppler-ruby",
+    "evidenceRefs": [
+      ".img2threejs/talon/evidence/image-analysis.md#layer-6"
+    ],
+    "note": "finishStyle from the measured highlight shape + gradient stops, not from the skin name"
+  },
+  "assets": {
+    "source": "image-only",
+    "records": []
+  },
+  "camera": {
+    "status": "unknown",
+    "provenance": "not-supplied"
+  },
+  "provenance": {
+    "reference": "user-supplied",
+    "metadata": "csgo-api-unreachable-http-403; image-only path retained"
+  },
+  "assumptions": {
+    "float": "band 0.00-0.07 inferred from the user-supplied 'Factory New' wear name only; no exact per-item float",
+    "paintSeed": "not recoverable from an image; fixed centred placement, approximated: true",
+    "hiddenRegions": "both flats observed via front+back; the Z axis (grind, stock thickness, spine top, bore chamfer) is inference",
+    "paintIndexCandidate": "415 (Doppler Ruby) per docs/cs2/distill.md:123 - local doc evidence, candidate only, drives nothing",
+    "toneMapping": "render uses AgX, not the fixture's recorded ACESFilmic; the peak ruby is clipped at R=255 in the reference and ACES desaturates it toward pink (registry.ts:90-92)"
+  },
+  "confidence": {
+    "overall": 0.93,
+    "hiddenRegions": 0.35,
+    "perRegion": {
+      "silhouette-both-flats": 0.95,
+      "in-plane-proportions": 0.93,
+      "ruby-albedo-gradient": 0.88,
+      "hardware-placement": 0.92,
+      "ivory-albedo-staining": 0.85,
+      "blade-cross-section-grind": 0.45,
+      "thickness-in-z": 0.35,
+      "spine-top-face": 0.3,
+      "ring-bore-chamfer": 0.4,
+      "finger-choil-depth": 0.35,
+      "roughness-metalness-scalars": 0.6,
+      "paint-seed-float": 0.0
+    }
+  },
+  "warnings": [
+    "heuristicSignal"
+  ],
+  "extensions": {
+    "compatibilityMode": "manifest-v1"
+  },
+  "reviewScene": {
+    "version": "cs2-knife-review-v1",
+    "camera": {
+      "fovDegrees": 40.0,
+      "position": [
+        0.0,
+        0.0,
+        3.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "objectTransform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "environmentHash": "not-supplied",
+    "exposure": 1.0,
+    "toneMapping": "ACESFilmic",
+    "resolution": [
+      1024,
+      1024
+    ],
+    "background": "#20242a",
+    "rendererVersion": "three-r170",
+    "thresholds": {
+      "silhouetteIoU": 0.85,
+      "aspectRatioDelta": 0.05,
+      "scaleDelta": 0.08,
+      "paintedRegionMask": 0.85,
+      "colorRegion": 0.8,
+      "patternRegion": 0.75,
+      "wearRegion": 0.7
+    },
+    "orbitViewpoints": [
+      {
+        "yaw": 35.0,
+        "pitch": 8.0
+      },
+      {
+        "yaw": -35.0,
+        "pitch": 8.0
+      }
+    ]
+  },
+  "classification": {
+    "itemFamily": "knife",
+    "subtype": "talon",
+    "confidence": 0.93,
+    "evidenceRefs": [
+      ".img2threejs/talon/refs/talon-front.png",
+      ".img2threejs/talon/refs/talon-back.png",
+      ".img2threejs/talon/evidence/reference-measurements.json",
+      ".img2threejs/talon/evidence/suitability-and-classification.md"
+    ],
+    "provider": "agent-vision/claude-opus-5",
+    "version": "1",
+    "timedOut": false,
+    "discriminatingEvidence": [
+      "closed circular finger ring at the butt, bore circularity 0.986 -> karambit/talon family",
+      "hawkbill blade with the cutting edge on the concave inner curve",
+      "three graduated circular through-holes in the blade flat (r 25.7 / 30.5 / 40.7 px, circularity 0.98-1.02) -> Talon marker, absent on Karambit",
+      "sawtooth jimping band on the upper spine (dark notch components at (876,484) and (889,454))",
+      "broad-bellied hawkbill rather than the Karambit's narrower, more sharply recurved blade"
+    ],
+    "candidates": [
+      {
+        "subtype": "talon",
+        "confidence": 0.93
+      },
+      {
+        "subtype": "karambit",
+        "confidence": 0.06
+      }
+    ],
+    "notes": "Classification owns semantic identity only; it does not set geometry or finish parameters. detect_cs2.py (is_cs2_candidate true, 0.55) was recorded as a non-authoritative routing hint only."
+  },
+  "itemFamily": "knife",
+  "subtype": "talon",
+  "rawItemFamily": "knife",
+  "componentAdapter": "cs2-knife-v1",
+  "adapterRoute": "cs2-knife-v1",
+  "adapterContractVersion": "1",
+  "adapterFixtureId": "cs2-knife-front-v1",
+  "adapterContract": {
+    "family": "knife",
+    "subtype": "talon",
+    "topology": [
+      "ground-blade",
+      "curve-sweep",
+      "extrude",
+      "assembled-solid"
+    ],
+    "paintedRegions": [
+      "blade-painted",
+      "grip-painted",
+      "guard-bare-metal",
+      "pommel-bare-metal"
+    ],
+    "materialAssignments": [
+      "skin-finish",
+      "substrate"
+    ],
+    "featureTargets": [
+      "silhouette",
+      "blade-edge-spine",
+      "grip",
+      "guard-quillon",
+      "fastener",
+      "pommel"
+    ],
+    "attachmentRules": [
+      "guard-to-blade",
+      "grip-to-guard",
+      "pommel-to-grip"
+    ],
+    "reviewViewpoints": [
+      "reference",
+      "orbit-left",
+      "orbit-right"
+    ],
+    "adapterId": "cs2-knife-v1",
+    "contractVersion": "1",
+    "active": true,
+    "fixtureId": "cs2-knife-front-v1"
+  },
+  "admissionByView": {
+    "front": {
+      "admitted": true,
+      "reasons": [],
+      "provenance": {
+        "viewpoint": "reference",
+        "sourcePath": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+        "width": 2560,
+        "height": 1440,
+        "foregroundCoverage": 0.2097,
+        "largestComponentFraction": 1.0,
+        "pHash": 18347940451214977680,
+        "duplicateOfHash": null
+      }
+    },
+    "back": {
+      "admitted": true,
+      "reasons": [],
+      "provenance": {
+        "viewpoint": "back",
+        "sourcePath": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-back.png",
+        "width": 2560,
+        "height": 1440,
+        "foregroundCoverage": 0.2097,
+        "largestComponentFraction": 1.0,
+        "pHash": 17771475369051842768,
+        "duplicateOfHash": null
+      }
+    }
+  },
+  "probeByView": {
+    "front": {
+      "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-front.png",
+      "type": "png",
+      "bytes": 1138300,
+      "width": 2560,
+      "height": 1440,
+      "aspectRatio": 1.7777777777777777,
+      "technicalSuitability": "pass",
+      "warnings": [],
+      "note": "This is only technical image probing. Semantic object suitability still requires visual inspection."
+    },
+    "back": {
+      "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/img2threejs/.img2threejs/talon/refs/talon-back.png",
+      "type": "png",
+      "bytes": 1099625,
+      "width": 2560,
+      "height": 1440,
+      "aspectRatio": 1.7777777777777777,
+      "technicalSuitability": "pass",
+      "warnings": [],
+      "note": "This is only technical image probing. Semantic object suitability still requires visual inspection."
+    }
+  },
+  "paintedRegions": {
+    "observedPainted": [
+      "blade-painted",
+      "tang-exposed-painted",
+      "pommel-ring-painted"
+    ],
+    "observedUnpainted": [
+      "grip-scale-ivory",
+      "hardware-brass",
+      "edge-apex-bare-steel"
+    ],
+    "adapterSeededPainted": [
+      "blade-painted",
+      "grip-painted",
+      "guard-bare-metal",
+      "pommel-bare-metal"
+    ],
+    "adapterRegionsNotPresentOnSubtype": [
+      "guard-bare-metal",
+      "guard-quillon"
+    ],
+    "divergenceNote": "The cs2-knife-v1 adapter seeds guard-bare-metal and a guard-quillon feature target. The Talon subtype has no crossguard or quillon; the blade runs straight into the scaled tang. The adapter list is preserved for auditability but the observed map is authoritative for this build, and guard-* regions must be reported not-applicable rather than scored as passing.",
+    "evidenceRefs": [
+      ".img2threejs/talon/evidence/image-analysis.md#layer-5",
+      ".img2threejs/talon/evidence/reference-measurements.json"
+    ]
+  }
+}
