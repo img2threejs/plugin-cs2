@@ -202,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scene",
         type=Path,
-        default=Path("forge/tests/fixtures/knife_review_scene.json"),
+        default=Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "knife_review_scene.json",
         help="versioned review scene fixture",
     )
     parser.add_argument("--out", type=Path, required=True, help="output review report JSON")

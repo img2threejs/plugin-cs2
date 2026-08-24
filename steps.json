@@ -12,12 +12,5 @@
     "actor": "agent",
     "command": "Obtain an authoritative CS2 family/subtype classification record and write it to classification.json in the workspace",
     "after": ["cs2-contract-read"]
-  },
-  {
-    "id": "cs2-manifest",
-    "title": "Build and validate the CS2 intake manifest",
-    "actor": "program",
-    "command": "python3 {plugin_dir}/tools/cs2_manifest.py {image} --classification classification.json --out cs2-intake.json",
-    "after": ["cs2-authoritative-classification"]
   }
 ]

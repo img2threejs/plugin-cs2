@@ -9,10 +9,9 @@ from io import StringIO
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "stage4_review"))
+sys.path.insert(0, str(ROOT / "tools"))
 
 from cs2_review import evaluate_knife_review, load_review_scene, main as cs2_review_main  # noqa: E402
-from append_review import main as append_review_main  # noqa: E402
 
 
 class Cs2ReviewGateTest(unittest.TestCase):
@@ -106,37 +105,6 @@ class Cs2ReviewGateTest(unittest.TestCase):
             path.write_text(json.dumps({"version": 1}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_review_scene(path)
-
-    def test_append_review_persists_cs2_report_and_rejects_failed_report(self) -> None:
-        report = evaluate_knife_review(self.manifest, self.passing_inputs(), self.scene)
-        failed = evaluate_knife_review(
-            self.manifest,
-            {**self.passing_inputs(), "identityDetail": 0.2},
-            self.scene,
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            spec_path = root / "spec.json"
-            report_path = root / "report.json"
-            failed_path = root / "failed.json"
-            spec_path.write_text(json.dumps({"sourceImage": "ref.png"}), encoding="utf-8")
-            report_path.write_text(json.dumps(report), encoding="utf-8")
-            failed_path.write_text(json.dumps(failed), encoding="utf-8")
-            append_review_main([
-                str(spec_path), "--pass-id", "optimization-pass", "--fidelity", "0.9",
-                "--action", "continue", "--summary", "ok", "--cs2-review-json", str(report_path),
-                "--review-scene-json", str(ROOT / "tests" / "fixtures" / "knife_review_scene.json"),
-                "--force-out-of-order",
-                "--in-place",
-            ])
-            persisted = json.loads(spec_path.read_text(encoding="utf-8"))
-            self.assertEqual(persisted["reviewHistory"][0]["cs2Review"]["verdict"], "pass")
-            with self.assertRaises(ValueError):
-                append_review_main([
-                    str(spec_path), "--pass-id", "optimization-pass", "--fidelity", "0.9",
-                    "--action", "continue", "--summary", "blocked", "--cs2-review-json", str(failed_path),
-                    "--force-out-of-order",
-                ])
 
 
 if __name__ == "__main__":

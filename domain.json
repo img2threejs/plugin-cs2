@@ -3,7 +3,7 @@
   "setupSteps": [
     ["cs2-contract-read", "Read {plugin_dir}/grimoire/intake/cs2_intake_contract.md completely"],
     ["cs2-authoritative-classification", "Obtain an authoritative CS2 family/subtype classification record"],
-    ["cs2-manifest", "python3 {plugin_dir}/tools/cs2_manifest.py {reference} --classification classification.json --out cs2-intake.json"]
+    ["cs2-manifest", "python3 forge/stage1_intake/cs2_manifest.py {reference} --classification classification.json --out cs2-intake.json"]
   ],
   "setupAnchorBefore": "local-spec-search",
   "passSteps": [

@@ -19,9 +19,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]  # plugin root
 ORACLE = Path(__file__).resolve().parent / "fixtures" / "oracle-talon"
-CS2_REVIEW = ROOT / "stage4_review" / "cs2_review.py"
+CS2_REVIEW = ROOT / "tools" / "cs2_review.py"
 
 
 class Cs2OracleReplay(unittest.TestCase):
@@ -40,7 +40,7 @@ class Cs2OracleReplay(unittest.TestCase):
                     "--out",
                     str(out),
                 ],
-                cwd=ROOT.parent,
+                cwd=ROOT,
                 capture_output=True,
                 text=True,
             )
