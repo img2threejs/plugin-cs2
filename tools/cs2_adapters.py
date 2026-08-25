@@ -55,8 +55,8 @@ _ADAPTERS = {"knife": (_KNIFE, SUPPORTED_KNIFE_SUBTYPES), "pistol": (_PISTOL, SU
 def get_family_adapter(family: str, subtype: str | None = None) -> FamilyAdapter:
     entry = _ADAPTERS.get(family)
     if entry is None:
-        raise ValueError(f"unsupported-family: {family}")
+        raise ValueError(f"not-served: this plugin has no adapter for the {family} family")
     adapter, supported = entry
     if subtype and subtype not in supported:
-        raise ValueError(f"unsupported-subtype: {subtype}")
+        raise ValueError(f"not-served: this plugin has no adapter for the {subtype} subtype")
     return adapter if subtype is None else replace(adapter, subtype=subtype)

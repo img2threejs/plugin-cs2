@@ -79,7 +79,7 @@ class Cs2ReviewGateTest(unittest.TestCase):
 
         self.assertEqual(report["verdict"], "reject")
         self.assertEqual(report["action"], "request-input")
-        self.assertIn("unsupported-family:rifle", report["failedGates"])
+        self.assertIn("not-served:rifle", report["failedGates"])
 
     def test_projection_coverage_and_identity_detail_are_blocking(self) -> None:
         inputs = self.passing_inputs()

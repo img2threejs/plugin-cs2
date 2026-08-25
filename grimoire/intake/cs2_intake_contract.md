@@ -10,8 +10,10 @@ wear, roughness response, and camera framing. Every decision must be traceable t
 labelled as an approximation.
 
 The initial CS2 family boundary is **knife only**. Pistol, rifle, SMG, sniper, heavy, glove, and
-unknown knife subtypes must stop with `unsupported-family` or `unsupported-subtype`; they must not
-receive the knife component tree as a generic fallback.
+unknown knife subtypes are **not served** by this plugin. It publishes no augmentation for them and
+the base pipeline proceeds on its generic path, authoring a skeleton and letting the agent infer the
+shape from the reference. Declining is not a blocked run, and the knife component tree is never
+handed to another family as a fallback.
 
 ## When to build `cs2-intake.json`
 
@@ -37,8 +39,7 @@ Pass these records between layers. Do not copy an informal vision description in
 | Build/review | rendered observables | fixed view, two non-degenerate orbit views, per-region results, failed gates, next action | overriding a failed critical feature with a global score |
 
 The canonical hand-off is `cs2-intake.json` (`schemaVersion: 1`). Its state is one of
-`proceed`, `request-input`, `fallback`, `rejected`, `unsupported-family`, or
-`unsupported-subtype`. Write it atomically and preserve unknown provider fields under
+`proceed`, `request-input`, `fallback`, `rejected`, `not-served`. Write it atomically and preserve unknown provider fields under
 `extensions`; a fallback must never erase prior evidence.
 
 ## CS2 intake order

@@ -74,7 +74,10 @@ class Cs2ManifestTests(unittest.TestCase):
             write_png(reference)
             classification = build_classification_record("rifle", "ak47", 0.99, ["view:front:subject"])
             manifest = build_manifest(reference, classification, admission_artifact=ADMITTED, probe_artifact=PROBED)
-            self.assertEqual(manifest["state"], "unsupported-family")
+            # Declined, not blocked: the base then authors a skeleton and the agent infers the
+            # shape from the reference. What must never happen is the knife adapter being handed
+            # to an item this plugin does not template.
+            self.assertEqual(manifest["state"], "not-served")
             self.assertNotIn("componentAdapter", manifest)
 
     def test_manifest_write_is_atomic_and_round_trips(self) -> None:

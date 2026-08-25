@@ -14,12 +14,17 @@ from cs2_review_contract import build_review_scene
 from detect_cs2 import detect_cs2_signals
 
 SCHEMA_VERSION: Final[int] = 1
+# What this plugin can template. Stated positively, and nothing enumerates what it cannot: an
+# item it does not template is simply not served, and the base pipeline then does what it does for
+# any object with no domain plugin -- author a skeleton and let the agent infer the shape from the
+# reference. The old design also carried an UNSUPPORTED_FAMILIES list and `unsupported-family` /
+# `unsupported-subtype` states, because CS2 used to live inside the base and a rifle would otherwise
+# have been handed the knife component tree. There is no such fallback to guard against any more:
+# the base ships no weapon template. The list only had to be maintained, and drifted -- base docs
+# advertised a Glock-18 adapter this code never had.
 SUPPORTED_FAMILIES: Final[frozenset[str]] = frozenset({"knife"})
-UNSUPPORTED_FAMILIES: Final[frozenset[str]] = frozenset(
-    {"pistol", "rifle", "smg", "sniper", "heavy", "glove"}
-)
-# Knife subtypes that have a dedicated geometry adapter. A subtype absent here is
-# `unsupported-subtype`, never silently routed through another subtype's tree.
+# Knife subtypes with a dedicated geometry adapter. One absent here is not served either, rather
+# than being routed through another subtype's tree.
 KNIFE_SUBTYPES: Final[frozenset[str]] = frozenset(
     {"karambit", "butterfly", "bayonet", "m9", "flip", "gut", "falchion", "bowie", "navaja",
      "talon", "classic"}
@@ -31,7 +36,7 @@ TIERS: Final[frozenset[str]] = frozenset(
     {"image-only", "metadata-assisted", "exact-texture"}
 )
 STATES: Final[frozenset[str]] = frozenset(
-    {"proceed", "request-input", "fallback", "rejected", "unsupported-family", "unsupported-subtype"}
+    {"proceed", "request-input", "fallback", "rejected", "not-served"}
 )
 
 
@@ -45,7 +50,7 @@ def build_classification_record(
     version: str = "1",
     timeout: bool = False,
 ) -> dict[str, Any]:
-    if item_family not in SUPPORTED_FAMILIES | UNSUPPORTED_FAMILIES:
+    if not item_family:
         raise ValueError(f"unsupported item family label: {item_family}")
     if not 0.0 <= confidence <= 1.0:
         raise ValueError("classification confidence must be between 0 and 1")
@@ -66,7 +71,7 @@ def _classification_error(record: Any) -> str | None:
     family = record.get("itemFamily")
     confidence = record.get("confidence")
     refs = record.get("evidenceRefs")
-    if not isinstance(family, str) or family not in SUPPORTED_FAMILIES | UNSUPPORTED_FAMILIES:
+    if not isinstance(family, str) or not family:
         return "classification itemFamily is missing or invalid"
     if not isinstance(confidence, (int, float)) or isinstance(confidence, bool) or not 0 <= confidence <= 1:
         return "classification confidence is missing or invalid"
@@ -159,11 +164,11 @@ def build_manifest(
     manifest["confidence"] = {"overall": classification["confidence"], "hiddenRegions": 0.25}
     manifest["identity"] = resolve_identity(explicit_identity, metadata, classification)
     if family not in SUPPORTED_FAMILIES:
-        manifest["state"] = "unsupported-family"
-        manifest["unsupportedReason"] = f"no adapter registered for {family}"
+        manifest["state"] = "not-served"
+        manifest["notServedReason"] = f"this plugin templates {'/'.join(sorted(SUPPORTED_FAMILIES))}, not {family}"
     elif subtype and subtype not in KNIFE_SUBTYPES:
-        manifest["state"] = "unsupported-subtype"
-        manifest["unsupportedReason"] = f"no knife adapter fixture for {subtype}"
+        manifest["state"] = "not-served"
+        manifest["notServedReason"] = f"no geometry adapter for the {subtype} subtype"
     else:
         manifest["state"] = "proceed"
         manifest["componentAdapter"] = "cs2-knife-v1"

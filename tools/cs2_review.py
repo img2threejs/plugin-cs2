@@ -107,7 +107,7 @@ def evaluate_knife_review(
     failed: list[str] = []
     family = manifest.get("itemFamily")
     if family != "knife":
-        failed.append(f"unsupported-family:{family or 'missing'}")
+        failed.append(f"not-served:{family or 'missing'}")
     if manifest.get("componentAdapter") != "cs2-knife-v1":
         failed.append("knife-adapter-missing")
     if manifest.get("state") != "proceed":
@@ -144,7 +144,7 @@ def evaluate_knife_review(
     report = {
         "verdict": "pass" if not failed else "reject",
         "action": "continue" if not failed else ("request-input" if any(
-            item.startswith(("unsupported-family", "manifest-state", "projection-evidence", "orbit-coverage"))
+            item.startswith(("not-served", "manifest-state", "projection-evidence", "orbit-coverage"))
             for item in failed
         ) else "refine-code"),
         "family": family,
