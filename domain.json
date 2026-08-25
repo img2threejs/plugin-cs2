@@ -12,6 +12,10 @@
     [
       "cs2-manifest",
       "python3 {plugin_dir}/tools/cs2_manifest.py {reference} --classification classification.json --admission admission.json --probe probe.json --out cs2-intake.json"
+    ],
+    [
+      "cs2-spec-augmentation",
+      "python3 {plugin_dir}/tools/emit_spec_augmentation.py --manifest cs2-intake.json --out spec-augmentation.json"
     ]
   ],
   "setupAnchorBefore": "local-spec-search",
