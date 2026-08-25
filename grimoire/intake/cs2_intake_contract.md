@@ -9,11 +9,13 @@ item: silhouette, proportions, edge profile, hardware layout, coating colour, pa
 wear, roughness response, and camera framing. Every decision must be traceable to evidence or be
 labelled as an approximation.
 
-The initial CS2 family boundary is **knife only**. Pistol, rifle, SMG, sniper, heavy, glove, and
-unknown knife subtypes are **not served** by this plugin. It publishes no augmentation for them and
-the base pipeline proceeds on its generic path, authoring a skeleton and letting the agent infer the
-shape from the reference. Declining is not a blocked run, and the knife component tree is never
-handed to another family as a fallback.
+This plugin serves **any** CS2 item. The finish system -- paint seed, float, wear, finish style --
+is identical across families and is the part of this domain the base pipeline cannot infer, so a
+rifle, a glove and a knife all get it. Only the component *tree* is family-specific: where this
+plugin has authored geometry it supplies it and records `componentAdapter`; where it does not, the
+manifest records `geometrySource: agent-inferred`, the augmentation omits `componentTree`, and the
+run authors the shape from the reference. Never a stopped run, and never another family's tree as
+a fallback.
 
 ## When to build `cs2-intake.json`
 
@@ -39,7 +41,7 @@ Pass these records between layers. Do not copy an informal vision description in
 | Build/review | rendered observables | fixed view, two non-degenerate orbit views, per-region results, failed gates, next action | overriding a failed critical feature with a global score |
 
 The canonical hand-off is `cs2-intake.json` (`schemaVersion: 1`). Its state is one of
-`proceed`, `request-input`, `fallback`, `rejected`, `not-served`. Write it atomically and preserve unknown provider fields under
+`proceed`, `request-input`, `fallback`, `rejected`. Write it atomically and preserve unknown provider fields under
 `extensions`; a fallback must never erase prior evidence.
 
 ## CS2 intake order

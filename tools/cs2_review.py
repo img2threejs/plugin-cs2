@@ -106,10 +106,10 @@ def evaluate_knife_review(
     thresholds = review_scene["thresholds"]
     failed: list[str] = []
     family = manifest.get("itemFamily")
-    if family != "knife":
-        failed.append(f"not-served:{family or 'missing'}")
-    if manifest.get("componentAdapter") != "cs2-knife-v1":
-        failed.append("knife-adapter-missing")
+    # No family gate. Every threshold below is about the surface and the silhouette -- finish
+    # response, painted-region coverage, identity detail -- and those apply to a rifle skin exactly
+    # as they do to a knife. Requiring the knife adapter here would have failed the review for any
+    # item whose geometry the agent inferred, which is the case this plugin now serves.
     if manifest.get("state") != "proceed":
         failed.append(f"manifest-state:{manifest.get('state', 'missing')}")
 
@@ -144,7 +144,7 @@ def evaluate_knife_review(
     report = {
         "verdict": "pass" if not failed else "reject",
         "action": "continue" if not failed else ("request-input" if any(
-            item.startswith(("not-served", "manifest-state", "projection-evidence", "orbit-coverage"))
+            item.startswith(("manifest-state", "projection-evidence", "orbit-coverage"))
             for item in failed
         ) else "refine-code"),
         "family": family,

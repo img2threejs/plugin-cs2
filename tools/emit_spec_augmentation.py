@@ -38,18 +38,12 @@ BASE_OWNED = ("qualityContract", "preSpecAssessment", "pipelineRouting", "source
 ASSESSMENT_FIELDS = ("objectClass", "complexity", "specDepthDecision", "detailInventory")
 
 
-def build(args: argparse.Namespace) -> dict[str, Any] | None:
+def build(args: argparse.Namespace) -> dict[str, Any]:
     manifest: dict[str, Any] | None = None
     if args.manifest:
         manifest = json.loads(Path(args.manifest).expanduser().read_text(encoding="utf-8"))
         if not isinstance(manifest, dict):
             raise ValueError("manifest must be a JSON object")
-        if manifest.get("state") == "not-served":
-            # This plugin does not template the item. Publish nothing: the base pipeline finds no
-            # augmentation, keeps the skeleton it authored, and the agent infers the shape from the
-            # reference -- the same path any object with no domain plugin takes. Declining is not an
-            # error, so there is nothing here for a run to work around.
-            return None
 
     scratch: dict[str, Any] = {}
     apply_cs2_template(
@@ -106,9 +100,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     artifact = build(args)
-    if artifact is None:
-        print(json.dumps({"served": False, "reason": "this plugin does not template that item"}))
-        return 0
     out = args.out.expanduser()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(artifact, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

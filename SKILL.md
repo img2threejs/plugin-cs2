@@ -15,8 +15,8 @@ The base skill stays the entry point. This plugin does not replace it and cannot
 
 ## When this applies
 
-A run whose target is a CS2 weapon skin, knife, or glove. **Declare it** — `--profile cs2` on the
-state file and `--cs2` when authoring the spec. It is not inferred from the target's name: a target
+A run whose target is any CS2 item -- knife, rifle, pistol, glove. **Declare it** — `--profile cs2` on the state file. The
+base pulls this plugin's augmentation automatically; there is no `--cs2` flag any more. It is not inferred from the target's name: a target
 called `"AK-47 | Redline"` does not self-identify, by design. Name similarity is not evidence
 (`PLUGIN_CONTRACT.md` §13), and the base skill previously applied CS2's quality floors to anything
 whose name happened to contain one of seventeen keywords, `"fade"` among them.
@@ -30,7 +30,7 @@ correction pass.
 |---|---|---|
 | `cs2-contract-read` | agent | Read `grimoire/intake/cs2_intake_contract.md` **completely** before creating or validating the manifest. It is a contract, not a reference. |
 | `cs2-authoritative-classification` | agent | Obtain an authoritative family/subtype record into `classification.json`. Guessing the subtype from the image is the failure this step exists to prevent. |
-| `cs2-manifest` | program | `tools/cs2_manifest.py` builds and validates `cs2-intake.json`. Its `state` must be `proceed` or `fallback` before authoring. |
+| `cs2-manifest` | program | Builds and validates `cs2-intake.json`. Records `componentAdapter` when this plugin has geometry for the family, or `geometrySource: agent-inferred` when it does not. |
 | `cs2-review` (gate) | program | `tools/cs2_review.py` produces a machine-readable verdict. **Blocking**: a failed verdict stops `continue` even when the global fidelity score passes. |
 
 It also contributes the `cs2` evidence collection to the base's local spec search.

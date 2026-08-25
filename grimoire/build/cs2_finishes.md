@@ -8,7 +8,7 @@ supplies them — they never block the default path.
 **Two finish routes, chosen by goal — do NOT default to procedural for a reference-match.**
 
 This rulebook does not authorize pistol, rifle, SMG, sniper, heavy, glove, or unknown knife
-subtypes. Intake returns `not-served` before finish selection
+subtypes. Where there is no authored geometry the finish still applies -- only the component tree is withheld.
 for those families. The route (`reference-projection`, `authored-texture`, or `procedural-finish`)
 and evidence tier (`image-only`, `metadata-assisted`, or `exact-texture`) are separate fields in
 `cs2-intake.json`; a route fallback never changes the evidence tier.

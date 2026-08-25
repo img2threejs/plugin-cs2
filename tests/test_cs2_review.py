@@ -72,14 +72,20 @@ class Cs2ReviewGateTest(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(json.loads(report_path.read_text(encoding="utf-8"))["verdict"], "pass")
 
-    def test_wrong_family_is_blocking_even_when_visual_metrics_pass(self) -> None:
+    def test_a_family_without_authored_geometry_is_reviewed_not_rejected(self) -> None:
+        # This used to assert the opposite: a rifle was blocked on family alone, even with every
+        # visual metric passing. That was inherited from the era when a non-knife would have been
+        # handed the knife component tree. Now only the geometry is family-specific -- the finish,
+        # painted-region and identity-detail thresholds apply to any CS2 item, so a rifle whose
+        # surface passes gets a passing review and the run keeps its CS2 quality floors.
         manifest = {**self.manifest, "itemFamily": "rifle"}
+        manifest.pop("componentAdapter", None)
 
         report = evaluate_knife_review(manifest, self.passing_inputs(), self.scene)
 
-        self.assertEqual(report["verdict"], "reject")
-        self.assertEqual(report["action"], "request-input")
-        self.assertIn("not-served:rifle", report["failedGates"])
+        self.assertEqual(report["verdict"], "pass")
+        self.assertEqual(report["failedGates"], [])
+        self.assertEqual(report["family"], "rifle")
 
     def test_projection_coverage_and_identity_detail_are_blocking(self) -> None:
         inputs = self.passing_inputs()

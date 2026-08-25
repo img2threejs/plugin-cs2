@@ -326,11 +326,19 @@ CS2_KNIFE_SUBTYPES = frozenset(
     {"karambit", "butterfly", "bayonet", "m9", "flip", "gut", "falchion", "bowie", "navaja",
      "talon", "classic"}
 )
-def make_cs2_component_tree(item_family: str = "knife", subtype: str | None = None) -> list:
+def make_cs2_component_tree(item_family: str = "knife", subtype: str | None = None) -> list | None:
+    """The authored geometry for a family this plugin has a tree for, or None.
+
+    None is a normal answer, not a failure: the CS2 finish system -- paint seed, float, wear,
+    finish style -- is the same for a rifle as for a knife, and that is the part of this domain
+    worth having. Only the geometry is family-specific. When there is no tree, the augmentation
+    omits componentTree and the agent infers the shape from the reference, exactly as it does for
+    any object, while still getting the finish recipe and the quality floors.
+    """
     if item_family != "knife":
-        raise ValueError(f"unsupported CS2 family {item_family!r}; only knife is implemented")
+        return None
     if subtype and subtype not in CS2_KNIFE_SUBTYPES:
-        raise ValueError(f"unsupported CS2 knife subtype {subtype!r}")
+        return None
     # Root is an organizing group only: use the invisible 'hidden' material (opacity 0) exactly
     # like the character template, so the generator's per-component mesh for root never renders as
     # a stray box over the weapon -- no generic generator change needed.
@@ -346,7 +354,22 @@ def make_cs2_component_tree(item_family: str = "knife", subtype: str | None = No
         _cs2node("bolster", "Bolster", "box", (0, 0.02, 0), (0.2, 0.18, 0.26), "substrate", "bolster", "meso", 0.6),
     ]
     return [root, *parts]
-def make_cs2_feature_targets() -> list:
+def make_cs2_feature_targets(authored_tree: bool = True) -> list:
+    """Review targets for the finish.
+
+    With no authored tree the agent names its own components, so these can only reference `root`,
+    which every spec has. The finish, pattern and wear gates still apply -- they are about the
+    surface, not the silhouette.
+    """
+    if not authored_tree:
+        return [
+            {**target, "componentRefs": ["root"]}
+            for target in make_cs2_feature_targets(authored_tree=True)
+        ]
+    return _knife_feature_targets()
+
+
+def _knife_feature_targets() -> list:
     return [
         {"id": "cs2-silhouette", "name": "Weapon silhouette and proportions", "tier": "critical",
          "passIds": ["blockout"], "minimumScore": 0.8, "mustPass": True,
@@ -388,9 +411,11 @@ def apply_cs2_template(
     if resolved_style not in CS2_FINISH_PROFILES:
         raise ValueError(f"unknown finish style {resolved_style!r}; expected one of: {', '.join(CS2_FINISH_STYLES)}")
     profile = CS2_FINISH_PROFILES[resolved_style]
-    spec["componentTree"] = make_cs2_component_tree(item_family, subtype)
+    tree = make_cs2_component_tree(item_family, subtype)
+    if tree is not None:
+        spec["componentTree"] = tree
     spec["materials"] = [_cs2_finish_material(resolved_style, float_value, paint_seed), _cs2_substrate_material(), _cs2_hidden_material()]
-    spec["featureReviewTargets"] = make_cs2_feature_targets()
+    spec["featureReviewTargets"] = make_cs2_feature_targets(authored_tree=tree is not None)
     # top-level signal for the pre-render environment gate (mirrors the material value)
     spec["envMapIntensity"] = profile["env"]
     spec["cs2Finish"] = {"finishStyle": resolved_style, "viewDependent": profile["viewDependent"],

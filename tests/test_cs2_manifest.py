@@ -68,17 +68,28 @@ class Cs2ManifestTests(unittest.TestCase):
             self.assertIn("heuristicSignal", manifest["warnings"])
             self.assertTrue(validate_manifest(manifest))
 
-    def test_unsupported_family_never_receives_knife_adapter(self) -> None:
+    def test_a_family_without_geometry_is_served_but_infers_its_shape(self) -> None:
+        # The finish system -- paint seed, float, wear, finish style -- is the same for a rifle as
+        # for a knife, and it is the part of this domain the base cannot infer. So a rifle IS served:
+        # it gets the recipe and the quality floors, and only the component tree is withheld, marked
+        # geometrySource=agent-inferred so the run authors its own shape from the reference.
         with tempfile.TemporaryDirectory() as directory:
-            reference = Path(directory) / "rifle.png"
+            reference = Path(directory) / "ak47.png"
             write_png(reference)
-            classification = build_classification_record("rifle", "ak47", 0.99, ["view:front:subject"])
+            classification = build_classification_record("rifle", "ak-47", 0.99, ["view:front:subject"])
             manifest = build_manifest(reference, classification, admission_artifact=ADMITTED, probe_artifact=PROBED)
-            # Declined, not blocked: the base then authors a skeleton and the agent infers the
-            # shape from the reference. What must never happen is the knife adapter being handed
-            # to an item this plugin does not template.
-            self.assertEqual(manifest["state"], "not-served")
+            self.assertEqual(manifest["state"], "proceed")
+            self.assertEqual(manifest["geometrySource"], "agent-inferred")
             self.assertNotIn("componentAdapter", manifest)
+
+    def test_a_family_with_geometry_gets_the_adapter(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            reference = Path(directory) / "knife.png"
+            write_png(reference)
+            classification = build_classification_record("knife", "talon", 0.99, ["view:front:subject"])
+            manifest = build_manifest(reference, classification, admission_artifact=ADMITTED, probe_artifact=PROBED)
+            self.assertEqual(manifest["componentAdapter"], "cs2-knife-v1")
+            self.assertNotIn("geometrySource", manifest)
 
     def test_manifest_write_is_atomic_and_round_trips(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -55,8 +55,8 @@ _ADAPTERS = {"knife": (_KNIFE, SUPPORTED_KNIFE_SUBTYPES), "pistol": (_PISTOL, SU
 def get_family_adapter(family: str, subtype: str | None = None) -> FamilyAdapter:
     entry = _ADAPTERS.get(family)
     if entry is None:
-        raise ValueError(f"not-served: this plugin has no adapter for the {family} family")
+        raise ValueError(f"no CS2 geometry adapter for the {family} family; the caller should infer the shape instead of asking for one")
     adapter, supported = entry
     if subtype and subtype not in supported:
-        raise ValueError(f"not-served: this plugin has no adapter for the {subtype} subtype")
+        raise ValueError(f"no CS2 geometry adapter for the {subtype} subtype; the caller should infer the shape instead of asking for one")
     return adapter if subtype is None else replace(adapter, subtype=subtype)

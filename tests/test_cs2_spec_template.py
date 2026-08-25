@@ -89,5 +89,20 @@ class IdentityPrecedence(unittest.TestCase):
         self.assertEqual(spec["cs2Finish"]["finishStyle"], "anodized-multicolored")
 
 
+class FamilyWithoutGeometry(unittest.TestCase):
+    def test_the_finish_recipe_applies_to_a_family_with_no_component_tree(self) -> None:
+        spec = template(finish_style="anodized-multicolored", item_family="rifle", subtype="ak-47")
+        self.assertNotIn("componentTree", spec, "no tree for a family this plugin has no geometry for")
+        # Everything that makes a CS2 skin a CS2 skin still applies.
+        self.assertEqual([m["id"] for m in spec["materials"]], ["skin-finish", "substrate", "hidden"])
+        self.assertTrue(spec["cs2Finish"]["viewDependent"])
+        self.assertEqual(spec["qualityContract"]["qualityBar"], "ultra-complex")
+
+    def test_review_targets_do_not_name_components_that_do_not_exist(self) -> None:
+        spec = template(item_family="rifle", subtype="ak-47")
+        refs = {r for f in spec["featureReviewTargets"] for r in f["componentRefs"]}
+        self.assertEqual(refs, {"root"}, "an inferred shape has no blade or grip to reference")
+
+
 if __name__ == "__main__":
     unittest.main()

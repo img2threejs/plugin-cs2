@@ -14,15 +14,16 @@ from cs2_review_contract import build_review_scene
 from detect_cs2 import detect_cs2_signals
 
 SCHEMA_VERSION: Final[int] = 1
-# What this plugin can template. Stated positively, and nothing enumerates what it cannot: an
-# item it does not template is simply not served, and the base pipeline then does what it does for
-# any object with no domain plugin -- author a skeleton and let the agent infer the shape from the
-# reference. The old design also carried an UNSUPPORTED_FAMILIES list and `unsupported-family` /
-# `unsupported-subtype` states, because CS2 used to live inside the base and a rifle would otherwise
-# have been handed the knife component tree. There is no such fallback to guard against any more:
-# the base ships no weapon template. The list only had to be maintained, and drifted -- base docs
-# advertised a Glock-18 adapter this code never had.
-SUPPORTED_FAMILIES: Final[frozenset[str]] = frozenset({"knife"})
+# No family gate. This plugin serves any CS2 item: the finish system -- paint seed, float, wear,
+# finish style -- is identical for a rifle, a glove and a knife, and that is the part of this domain
+# the base pipeline cannot infer. Only the component *tree* is family-specific, and when there is
+# none the augmentation omits it and the agent infers the shape from the reference.
+#
+# There used to be SUPPORTED_FAMILIES / UNSUPPORTED_FAMILIES here and `unsupported-family` /
+# `unsupported-subtype` states that stopped the run. That was inherited from CS2 living inside the
+# base skill, where a rifle would otherwise have been handed the knife component tree. Nothing to
+# guard against any more -- and stopping a run cost the CS2 finish knowledge for exactly the items
+# that needed it, an AK-47 with a painted floral pattern being the case that showed it.
 # Knife subtypes with a dedicated geometry adapter. One absent here is not served either, rather
 # than being routed through another subtype's tree.
 KNIFE_SUBTYPES: Final[frozenset[str]] = frozenset(
@@ -36,7 +37,7 @@ TIERS: Final[frozenset[str]] = frozenset(
     {"image-only", "metadata-assisted", "exact-texture"}
 )
 STATES: Final[frozenset[str]] = frozenset(
-    {"proceed", "request-input", "fallback", "rejected", "not-served"}
+    {"proceed", "request-input", "fallback", "rejected"}
 )
 
 
@@ -163,15 +164,13 @@ def build_manifest(
     manifest["identity"] = {"provenance": "classification-record", "confidence": classification["confidence"]}
     manifest["confidence"] = {"overall": classification["confidence"], "hiddenRegions": 0.25}
     manifest["identity"] = resolve_identity(explicit_identity, metadata, classification)
-    if family not in SUPPORTED_FAMILIES:
-        manifest["state"] = "not-served"
-        manifest["notServedReason"] = f"this plugin templates {'/'.join(sorted(SUPPORTED_FAMILIES))}, not {family}"
-    elif subtype and subtype not in KNIFE_SUBTYPES:
-        manifest["state"] = "not-served"
-        manifest["notServedReason"] = f"no geometry adapter for the {subtype} subtype"
-    else:
-        manifest["state"] = "proceed"
+    manifest["state"] = "proceed"
+    # An adapter is recorded only when this plugin actually has geometry for the family. Its absence
+    # tells the run to infer the shape, and is not a reason to stop.
+    if family == "knife" and (not subtype or subtype in KNIFE_SUBTYPES):
         manifest["componentAdapter"] = "cs2-knife-v1"
+    else:
+        manifest["geometrySource"] = "agent-inferred"
     if metadata:
         manifest = enrich_manifest_with_metadata(manifest, {"status": "resolved", "identity": metadata})
         manifest["metadata"] = normalize_cs2_metadata(metadata)
@@ -189,8 +188,11 @@ def validate_manifest(manifest: dict[str, Any]) -> bool:
         return False
     if not isinstance(manifest["sourceViews"], list) or not isinstance(manifest["warnings"], list):
         return False
-    if manifest["state"] == "proceed" and manifest.get("itemFamily") != "knife":
-        return False
+    # No family check. A CS2 item of any family is a valid manifest: only the component tree is
+    # family-specific, and its absence is recorded as geometrySource=agent-inferred rather than
+    # making the manifest invalid. This was the fourth place the knife restriction was enforced --
+    # build_classification_record, the classification validator, the state branch and here -- which
+    # is why it drifted out of step with the documentation.
     return True
 
 
