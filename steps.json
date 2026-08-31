@@ -1,16 +1,1 @@
-[
-  {
-    "id": "cs2-contract-read",
-    "title": "Read the CS2 intake contract completely",
-    "actor": "agent",
-    "command": "Read {plugin_dir}/grimoire/intake/cs2_intake_contract.md completely before creating or validating the manifest",
-    "after": []
-  },
-  {
-    "id": "cs2-authoritative-classification",
-    "title": "Obtain an authoritative CS2 family and subtype classification",
-    "actor": "agent",
-    "command": "Obtain an authoritative CS2 family/subtype classification record and write it to classification.json in the workspace",
-    "after": ["cs2-contract-read"]
-  }
-]
+[]
