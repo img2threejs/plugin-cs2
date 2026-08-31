@@ -207,15 +207,42 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--out", type=Path, required=True, help="output review report JSON")
     args = parser.parse_args(argv)
+    # stdout carries exactly one img2.gate-verdict envelope and nothing else: the gate runner
+    # parses the WHOLE stream as a single JSON document (PLUGIN_CONTRACT §9), so the full report
+    # lives only in --out. This tool previously printed the report itself, which the runner
+    # classified as a malformed envelope -- error, never pass -- the moment gates started
+    # actually executing.
+    def envelope(status: str, reasons: list[str], evidence: dict) -> None:
+        print(
+            json.dumps(
+                {
+                    "kind": "img2.gate-verdict",
+                    "version": 1,
+                    "gate": "cs2-review",
+                    "plugin": "cs2",
+                    "status": status,
+                    "reasons": reasons,
+                    "evidence": evidence,
+                },
+                ensure_ascii=False,
+            )
+        )
+
     try:
         manifest = _load_object(args.manifest, "manifest")
         metrics = _load_object(args.metrics, "metrics")
         scene = load_review_scene(args.scene.expanduser())
         report = evaluate_knife_review(manifest, metrics, scene)
         _write_json_atomic(args.out, report)
-        print(json.dumps(report, indent=2, ensure_ascii=False))
-        return 0 if report["verdict"] == "pass" else 1
+        passed = report["verdict"] == "pass"
+        envelope(
+            "pass" if passed else "fail",
+            [] if passed else [str(item) for item in report.get("failedGates", [])] or ["review verdict: " + str(report["verdict"])],
+            {"report": str(args.out), "verdict": report["verdict"], "action": report.get("action")},
+        )
+        return 0 if passed else 1
     except (OSError, ValueError, json.JSONDecodeError) as error:
+        envelope("error", [str(error)], {})
         print(f"error: {error}", file=sys.stderr)
         return 2
 
