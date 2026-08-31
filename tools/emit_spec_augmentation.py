@@ -66,6 +66,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     assessment_patch = {k: pre[k] for k in ASSESSMENT_FIELDS if k in pre}
     # The domain marker is set by the base's own domain resolution, never proposed by an artifact.
     assessment_patch.get("objectClass", {}).pop("domain", None)
+    if "detailInventory" in assessment_patch:
+        # The floor travels through qualityFloors alone. Sending it through the patch as well
+        # let the unclamped copy win before the base guarded both partitions (PR #106 review,
+        # finding 1). Copied, not popped: the comprehension above shares dicts with `pre`, and
+        # the floors block below still reads pre["detailInventory"]["targetMinDetails"].
+        assessment_patch["detailInventory"] = {
+            k: v for k, v in assessment_patch["detailInventory"].items() if k != "targetMinDetails"
+        }
 
     floors: dict[str, Any] = {}
     if "qualityBar" in contract:
