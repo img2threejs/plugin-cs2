@@ -89,7 +89,7 @@
       `plugin-gates` on a workspace whose metrics carry a `deferred` block → `img2.gate-run` with
       `cs2-review` `status: "fail"`, deferral named in `reasons`, `stopped: true` (first-ever real
       execution of this path).
-- [ ] 5.5 Capture acceptance artifact 2 (best-effort, contract-driven): a `reviewHistory` entry
+- [x] 5.5 (captured 2026-09-03, live run test-e2e-02: blockout entry has domainReview {verdict: pass, deferralCount: 3}, no override prose — agent learned the deferred contract from the intake doc alone) Capture acceptance artifact 2 (best-effort, contract-driven): a `reviewHistory` entry
       with `domainReview` populated via `--domain-review-json` and no override prose in
       `visualEvidence.notes`.
 
