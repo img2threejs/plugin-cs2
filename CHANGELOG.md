@@ -5,7 +5,19 @@ All notable changes to **plugin-cs2** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] — 2026-09-02
+
+### Fixed
+
+- **The blocking review gate can pass now.** `tools/cs2_review.py` speaks a single
+  `img2.gate-verdict` envelope on stdout instead of dumping its report there — as installed at
+  0.1.0 the runner read the report dump as a malformed envelope, so the gate returned `error` on
+  every run, including against the plugin's own passing oracle fixture. The report lives in `--out`.
+- The detail floor travels through `qualityFloors` alone, so the base's raise-only clamp governs it
+  on every path instead of being bypassed via `assessmentPatch`.
+- `steps.json` no longer duplicates the domain track that `domain.json` declares.
+- The `cs2` spec-search collection restores the generic `core_3d` records and ships the
+  documentation file its search profile declares.
 
 ### Added
 
