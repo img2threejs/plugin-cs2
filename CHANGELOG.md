@@ -17,8 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence the projection bake produces (`finishMaterialResponse`, `identityDetail`,
   `projection-coverage`) — previously those rejected every pass before material-pass on metrics
   that could not exist yet, teaching agents to route around a blocking gate. Deferral is
-  declaration-only (prose grants nothing), fail-closed on unknown keys, and refused when the
-  metric is present (`deferral-conflict`). OpenSpec change: `phase-aware-cs2-review`.
+  declaration-only (prose grants nothing) and fail-closed on unknown keys; a deferral whose metric
+  is present and failing is a contradiction (`deferral-conflict`, rejects), while
+  present-and-passing is evaluated normally and recorded as spurious. OpenSpec change:
+  `phase-aware-cs2-review`.
 - Every report now carries a provenance block: `mode`, `passId`, `pluginVersion`,
   `deferredGates` (always present; empty means zero deferrals), `deferralCount`,
   `spuriousDeferrals`. The byte-frozen oracle fixture was re-recorded in this same change — the

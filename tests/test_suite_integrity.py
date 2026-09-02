@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # Raise when tests are added. Never lower it to make a red suite green: a drop means tests stopped
 # being collected, which is the failure this file exists to catch.
-COLLECTED_FLOOR = 68
+COLLECTED_FLOOR = 70
 
 _PROBE = """
 import json, unittest

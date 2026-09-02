@@ -138,6 +138,21 @@ class DeferralTruthTable(unittest.TestCase):
         self.assertNotIn("identityDetail", report["deferredGates"])
         self.assertEqual(report["spuriousDeferrals"], ["identityDetail"])
 
+    def test_present_junk_value_under_deferral_is_a_conflict_not_a_deferral(self):
+        # A present non-numeric value was always a failure; a declared deferral must not launder it.
+        metrics = _metrics(finishMaterialResponse="pending", deferred={"finishMaterialResponse": "later"})
+        report = _run(_manifest(), metrics, allow_deferrals=True)
+        self.assertEqual(report["verdict"], "reject")
+        self.assertIn("finishMaterialResponse", report["failedGates"])
+        self.assertIn("deferral-conflict:finishMaterialResponse", report["failedGates"])
+        self.assertEqual(report["deferredGates"], [])
+
+    def test_inapplicable_projection_deferral_is_recorded_as_spurious(self):
+        metrics = _metrics(deferred={"projection-coverage": "later"})
+        report = _run(_manifest(route="procedural-finish"), metrics, allow_deferrals=True)
+        self.assertIn("projection-coverage", report["spuriousDeferrals"])
+        self.assertNotIn("projection-coverage", report["deferredGates"])
+
     def test_action_mapping_for_deferral_tokens(self):
         # Declaration errors ask for fixed inputs; a conflict is a real quality failure.
         conflict = _run(_manifest(), _metrics(finishMaterialResponse=0.1, deferred={"finishMaterialResponse": "later"}), allow_deferrals=True)

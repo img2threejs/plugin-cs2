@@ -61,7 +61,7 @@
 - [x] 3.11 Add a strict-mode oracle companion so the strict path has oracle coverage (the existing
       replay exercises only the permissive invocation).
 - [x] 3.12 Raise `COLLECTED_FLOOR` in `tests/test_suite_integrity.py` to the new collected count
-      and state the number in this file when done: **68** (was 36).
+      and state the number in this file when done: **70** (was 36).
 
 ## 4. Documentation
 

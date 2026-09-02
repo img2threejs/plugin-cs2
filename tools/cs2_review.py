@@ -49,9 +49,13 @@ def _plugin_version() -> str:
     # Read lazily, not at import: this is a blocking-gate binary, and a missing or corrupted
     # plugin.json must surface as an error ENVELOPE from main(), never as a bare import-time
     # traceback the gate runner can only report as opaque.
-    return json.loads(
+    manifest = json.loads(
         (Path(__file__).resolve().parent.parent / "plugin.json").read_text(encoding="utf-8")
-    )["version"]
+    )
+    version = manifest.get("version") if isinstance(manifest, dict) else None
+    if not isinstance(version, str) or not version:
+        raise ValueError('plugin.json has no string "version"')
+    return version
 
 
 def load_review_scene(path: Path) -> dict[str, Any]:
@@ -84,9 +88,12 @@ def _metric_state(value: Any, threshold: float, *, maximum: bool = False) -> str
     """"missing" | "failing" | "passing" -- the split _failed_threshold collapses. Deferral
     semantics need to tell a metric that does not exist yet from one that exists and fails: only
     the former is deferrable, and the latter under a declared deferral is a producer contradiction
-    (deferral-conflict)."""
-    if not _number(value):
+    (deferral-conflict). A PRESENT non-numeric value is "failing", not "missing" -- junk was always
+    a failure, and a declared deferral must not launder it into a clean deferral."""
+    if value is None:
         return "missing"
+    if not _number(value):
+        return "failing"
     failed = float(value) > threshold if maximum else float(value) < threshold
     return "failing" if failed else "passing"
 
@@ -225,6 +232,15 @@ def evaluate_knife_review(
             failed.append("projection-evidence-missing")
         else:
             judge("projection-coverage", _metric_state(projection.get("coverage"), float(thresholds["projectionCoverage"])))
+    if honored("projection-coverage") and not (
+        "projection-coverage" in deferred_gates
+        or "projection-coverage" in spurious_deferrals
+        or "deferral-conflict:projection-coverage" in failed
+    ):
+        # Declared but never judged (non-projection route, or projection-evidence-missing fired):
+        # recorded as spurious so a producer never believes it deferred something that deferred
+        # nothing (design D2).
+        spurious_deferrals.append("projection-coverage")
 
     multi_angle = inputs.get("multiAngle")
     if not isinstance(multi_angle, dict) or multi_angle.get("degenerate") is True:
