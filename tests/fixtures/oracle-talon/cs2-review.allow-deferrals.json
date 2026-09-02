@@ -214,7 +214,7 @@
     "Two small brass blobs appear on the BACK view only at (390,939) r 9.9 and (428,941) r 8.9 with no mirrored front counterpart. NOT modelled as hardware - recorded as an unexplained observation rather than invented as a part (confidence 0.30)."
   ],
   "failedGates": [],
-  "mode": "strict",
+  "mode": "allow-deferrals",
   "passId": null,
   "pluginVersion": "0.1.2",
   "deferredGates": [],

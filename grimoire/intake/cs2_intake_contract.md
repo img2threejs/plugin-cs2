@@ -81,3 +81,54 @@ hidden blade sides, underside, and back hardware must carry inference confidence
 `request-input`. Review the fixed camera plus two meaningful orbit views. Report what changed, which
 evidence caused it, what still differs, and choose exactly one next action:
 `continue`, `refine-spec`, `refine-code`, `request-input`, or `stop`.
+
+## Review metrics file contract (`cs2-review-inputs.json`)
+
+The per-pass review step and the terminal gate both run
+`tools/cs2_review.py --metrics cs2-review-inputs.json`. You author that file each pass. Beyond the
+measured metrics (`silhouetteIoU`, `aspectRatioDelta`, `scaleDelta`, `finishMaterialResponse`,
+`identityDetail`, `paintedRegions`, `criticalFeatures`, `projection`, `multiAngle`, `passId`), it
+carries ONE mechanism for a metric that cannot exist yet:
+
+- **`deferred`** — an object mapping a gate token to a short reason string (≤ 200 characters,
+  plain string, never truncated). Prose anywhere else (`projection.state`, provenance notes)
+  grants NOTHING: a null metric without a `deferred` entry fails its gate.
+- The deferrable set is closed and fixed: `finishMaterialResponse`, `identityDetail`,
+  `projection-coverage` — the metrics the projection bake produces, which do not exist before
+  material-pass. Keys are gate tokens (the `failedGates` vocabulary): projection is
+  `projection-coverage`, never `projection.coverage`. Any other key — geometry gates, painted
+  regions, typos — is refused as `deferral-invalid:<key>`.
+- Deferral is honored only by the per-pass invocation (`--allow-deferrals`, already present in
+  this plugin's `domain.json` row). The terminal `plugin-gates` door runs strict: every `deferred`
+  entry there is refused (`deferral-refused:<token>`), a null metric fails, and `paintedRegions`
+  and `criticalFeatures` must be non-empty.
+- Deferring `projection-coverage` still requires `"projection": {"required": true, "coverage": null}`
+  to be present. A deferred metric that turns out to be present-and-failing is a contradiction
+  (`deferral-conflict:<token>`) and rejects.
+
+Worked example for a pre-material pass (blockout through form-refinement):
+
+```json
+{
+  "passId": "form-refinement",
+  "silhouetteIoU": 0.86,
+  "aspectRatioDelta": 0.01,
+  "scaleDelta": 0.001,
+  "finishMaterialResponse": null,
+  "identityDetail": null,
+  "paintedRegions": [],
+  "criticalFeatures": [{"id": "receiver-silhouette", "score": 0.82}],
+  "projection": {"required": true, "coverage": null},
+  "multiAngle": {"degenerate": false, "angles": [{"id": "front", "azimuth": 0}, {"id": "right", "azimuth": 90}]},
+  "deferred": {
+    "finishMaterialResponse": "bake not yet run; lands in material-pass",
+    "identityDetail": "bake not yet run; lands in material-pass",
+    "projection-coverage": "bake not yet run; lands in material-pass"
+  }
+}
+```
+
+The report the gate writes back records `mode`, `passId`, `pluginVersion`, `deferredGates`,
+`deferralCount`, and `spuriousDeferrals`, so a later reader can tell which rules judged which
+pass. Attach the report to the review record via `append_review.py --domain-review-json`; a
+deferred pass is a pass with named deferrals, not a waiver.

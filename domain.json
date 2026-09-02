@@ -22,7 +22,7 @@
   "passSteps": [
     [
       "cs2-review",
-      "python3 {plugin_dir}/tools/cs2_review.py --manifest cs2-intake.json --metrics cs2-review-inputs.json --scene {plugin_dir}/tests/fixtures/knife_review_scene.json --out cs2-review.json"
+      "python3 {plugin_dir}/tools/cs2_review.py --manifest cs2-intake.json --metrics cs2-review-inputs.json --scene {plugin_dir}/tests/fixtures/knife_review_scene.json --out cs2-review.json --allow-deferrals"
     ]
   ],
   "passAnchorBefore": "ai-review-recorded",

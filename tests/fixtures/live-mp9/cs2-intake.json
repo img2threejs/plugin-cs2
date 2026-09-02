@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "state": "proceed",
+  "sourceViews": [
+    {
+      "role": "reference",
+      "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/reference.png",
+      "hash": 17853064921605047500,
+      "width": 2000,
+      "height": 1125,
+      "coverage": 0.2198,
+      "duplicate": false
+    }
+  ],
+  "admission": {
+    "admitted": true,
+    "reasons": [],
+    "provenance": {
+      "viewpoint": "right-flank",
+      "sourcePath": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/reference.png",
+      "width": 2000,
+      "height": 1125,
+      "foregroundCoverage": 0.2198,
+      "largestComponentFraction": 1.0,
+      "pHash": 17853064921605047500,
+      "duplicateOfHash": null
+    }
+  },
+  "probe": {
+    "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/reference.png",
+    "type": "png",
+    "bytes": 1079032,
+    "width": 2000,
+    "height": 1125,
+    "aspectRatio": 1.7777777777777777,
+    "technicalSuitability": "pass",
+    "warnings": [],
+    "note": "This is only technical image probing. Semantic object suitability still requires visual inspection."
+  },
+  "heuristicSignal": {
+    "path": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/reference.png",
+    "is_cs2_candidate": true,
+    "confidence": 0.55,
+    "signals": [
+      "aspect_ratio_matches:knife_folder,pistol_angle",
+      "wide_format_workshop_render",
+      "neutral_background_steam_style",
+      "typical_render_file_size"
+    ],
+    "weapon_categories": [
+      "knife_folder",
+      "pistol_angle"
+    ],
+    "dimensions": {
+      "width": 2000,
+      "height": 1125,
+      "aspectRatio": 1.778
+    },
+    "color_profile": {
+      "dominant_range": "neutral_grey",
+      "energy": 210.14
+    },
+    "note": "This is a heuristic pre-analysis guard using file metadata and basic byte statistics. It does NOT perform visual analysis. The agent's vision layer (Step 1) performs definitive CS2 identification using the M.C.M.T framework in grimoire/intake/cs2_technical_analysis.md"
+  },
+  "exactnessTier": "metadata-assisted",
+  "route": "reference-projection",
+  "textureSource": "image-only",
+  "identity": {
+    "status": "resolved",
+    "identity": {
+      "itemFamily": "smg",
+      "subtype": "mp9",
+      "confidence": 0.99,
+      "evidenceRefs": [
+        "reference.png#right-flank-elevation:magazine-through-pistol-grip + forward-vertical-grip + full-length-top-rail + single-strut-telescoping-stock => machine-pistol layout, not a bladed item",
+        "skins-index.json#ByMykel/CSGO-API@main:unique match 'MP9 | Wild Lily' paint_index=734 rarity=Classified floatRange=[0,0.7]; no other record in 2126 named 'Wild Lily'",
+        "official-refs/734.png#steam-cdn-render-for-paint_index-734 vs reference_icon.png: alpha-mask mismatch 0 px (0.000% of frame), mean|dL| over 45275 shared foreground px = 0.025 => the supplied icon IS the official render for this paint index",
+        "crop_leftflank_hardware.png#left-flank-hardware-band:ejection-port/serial-plate band is the only non-mirrored content between the two supplied elevations",
+        "image-analysis.md#layer-1"
+      ],
+      "provider": "csgo-api-index+steam-cdn-pixel-match",
+      "version": "skins.json@ByMykel/CSGO-API main (fetched 2026-09-02)",
+      "timedOut": false,
+      "conflictsWithUserMetadata": {
+        "userStated": "CS2 knife skin",
+        "resolved": "MP9 | Wild Lily (smg/mp9, paint_index 734)",
+        "resolution": "reference + uniquely-resolved authoritative metadata override the stated family; recorded, not silently absorbed. The knife geometry adapter is NOT applicable."
+      }
+    },
+    "provenance": "classification-record"
+  },
+  "finish": {
+    "provenance": "visual-observation",
+    "confidence": 0.9,
+    "finishStyle": "custom-paint-job"
+  },
+  "assets": {
+    "source": "image-only",
+    "records": []
+  },
+  "camera": {
+    "status": "unknown",
+    "provenance": "not-supplied"
+  },
+  "provenance": {
+    "reference": "user-supplied",
+    "metadata": "not-supplied"
+  },
+  "assumptions": {
+    "float": "unknown",
+    "paintSeed": "unknown",
+    "hiddenRegions": "inferred"
+  },
+  "confidence": {
+    "overall": 0.99,
+    "hiddenRegions": 0.25
+  },
+  "warnings": [
+    "heuristicSignal"
+  ],
+  "extensions": {
+    "compatibilityMode": "manifest-v1",
+    "identityCorroboration": {
+      "officialRenderPath": "official-refs/734.png",
+      "userIconPath": "reference_icon.png",
+      "alphaMaskMismatchPixels": 0,
+      "meanForegroundLumaDelta": 0.025,
+      "sharedForegroundPixels": 45275,
+      "verdict": "supplied icon is the official Steam CDN render for paint_index 734"
+    },
+    "heuristicWasWrong": {
+      "detectCs2Categories": [
+        "knife_folder",
+        "pistol_angle"
+      ],
+      "actualFamily": "smg/mp9",
+      "note": "detect_cs2 inferred 'knife_folder' from a 16:9 aspect ratio and agreed with the user's stated 'knife'. Both were wrong. This is exactly why the intake contract forbids deciding identity from aspect ratio or filename."
+    },
+    "viewEvidence": {
+      "admittedViewpoints": [
+        "right-flank",
+        "three-quarter",
+        "left-flank-hardware-band"
+      ],
+      "rejectedViewpoints": [
+        {
+          "path": "reference_side_b.png",
+          "reason": "horizontal mirror of reference.png (mean|dL| mirrored 2.5 vs direct 22.5)"
+        }
+      ],
+      "oppositeFlankArtwork": "unknown -- inferred by mirroring, not observed"
+    }
+  },
+  "reviewScene": {
+    "version": "cs2-knife-review-v1",
+    "camera": {
+      "fovDegrees": 40.0,
+      "position": [
+        0.0,
+        0.0,
+        3.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "objectTransform": {
+      "position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "environmentHash": "not-supplied",
+    "exposure": 1.0,
+    "toneMapping": "ACESFilmic",
+    "resolution": [
+      1024,
+      1024
+    ],
+    "background": "#20242a",
+    "rendererVersion": "three-r170",
+    "thresholds": {
+      "silhouetteIoU": 0.85,
+      "aspectRatioDelta": 0.05,
+      "scaleDelta": 0.08,
+      "paintedRegionMask": 0.85,
+      "colorRegion": 0.8,
+      "patternRegion": 0.75,
+      "wearRegion": 0.7
+    },
+    "orbitViewpoints": [
+      {
+        "yaw": 35.0,
+        "pitch": 8.0
+      },
+      {
+        "yaw": -35.0,
+        "pitch": 8.0
+      }
+    ]
+  },
+  "classification": {
+    "itemFamily": "smg",
+    "subtype": "mp9",
+    "confidence": 0.99,
+    "evidenceRefs": [
+      "reference.png#right-flank-elevation:magazine-through-pistol-grip + forward-vertical-grip + full-length-top-rail + single-strut-telescoping-stock => machine-pistol layout, not a bladed item",
+      "skins-index.json#ByMykel/CSGO-API@main:unique match 'MP9 | Wild Lily' paint_index=734 rarity=Classified floatRange=[0,0.7]; no other record in 2126 named 'Wild Lily'",
+      "official-refs/734.png#steam-cdn-render-for-paint_index-734 vs reference_icon.png: alpha-mask mismatch 0 px (0.000% of frame), mean|dL| over 45275 shared foreground px = 0.025 => the supplied icon IS the official render for this paint index",
+      "crop_leftflank_hardware.png#left-flank-hardware-band:ejection-port/serial-plate band is the only non-mirrored content between the two supplied elevations",
+      "image-analysis.md#layer-1"
+    ],
+    "provider": "csgo-api-index+steam-cdn-pixel-match",
+    "version": "skins.json@ByMykel/CSGO-API main (fetched 2026-09-02)",
+    "timedOut": false,
+    "conflictsWithUserMetadata": {
+      "userStated": "CS2 knife skin",
+      "resolved": "MP9 | Wild Lily (smg/mp9, paint_index 734)",
+      "resolution": "reference + uniquely-resolved authoritative metadata override the stated family; recorded, not silently absorbed. The knife geometry adapter is NOT applicable."
+    }
+  },
+  "itemFamily": "smg",
+  "subtype": "mp9",
+  "geometrySource": "agent-inferred",
+  "metadataResolution": {
+    "status": "resolved",
+    "identity": {
+      "name": "MP9 | Wild Lily",
+      "weapon": "MP9",
+      "paintIndex": "734",
+      "minFloat": 0,
+      "maxFloat": 0.7,
+      "floatRange": {
+        "min": 0,
+        "max": 0.7
+      },
+      "rarity": "Classified",
+      "imageUrl": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_jdk4uL3V61-LPGdCliWzeFkse1WQyC0nQlp4WuHz4mpcCrDZ1QhCcR5FrUJtkK9lNPuYezh4gDf2ItNxCr8iypJujErvbjAJv0dlg",
+      "source": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/skins-index.json",
+      "provenance": {
+        "kind": "metadata-index",
+        "source": "/Users/tamlh/workspaces/self/AI/img2threejs-org/test-e2e-20260902/skins-index.json"
+      },
+      "imagePath": "official-refs/734.png",
+      "finishStyle": "custom-paint",
+      "hiddenRegionConfidence": 0.25
+    }
+  },
+  "metadata": {
+    "identity": {
+      "name": "MP9 | Wild Lily",
+      "paintIndex": "734",
+      "rarity": "Classified",
+      "previewUrl": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8js_f_jdk4uL3V61-LPGdCliWzeFkse1WQyC0nQlp4WuHz4mpcCrDZ1QhCcR5FrUJtkK9lNPuYezh4gDf2ItNxCr8iypJujErvbjAJv0dlg",
+      "floatRange": {
+        "min": 0,
+        "max": 0.7
+      }
+    },
+    "float": null,
+    "paintSeed": null,
+    "finishStyle": "custom-paint-job",
+    "approximations": {
+      "float": {
+        "value": null,
+        "approximated": true,
+        "confidence": 0.0
+      },
+      "paintSeed": {
+        "value": null,
+        "approximated": true,
+        "confidence": 0.0
+      },
+      "hiddenRegions": {
+        "confidence": 0.25,
+        "approximated": true
+      },
+      "finishStyle": {
+        "value": "custom-paint-job",
+        "approximated": false,
+        "source": "vision-inference",
+        "confidence": 0.9,
+        "basis": "non-tiled illustrative art (lily/leaf painting) over a dark navy substrate; no view-dependent metal colour response"
+      }
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "passId": "form-refinement",
+  "silhouetteIoU": 0.8629,
+  "aspectRatioDelta": 0.0099,
+  "scaleDelta": 0.0008,
+  "finishMaterialResponse": null,
+  "identityDetail": null,
+  "paintedRegions": [],
+  "criticalFeatures": [
+    {
+      "id": "frt-form-muzzle-crown",
+      "score": 0.82,
+      "threshold": 0.75
+    }
+  ],
+  "projection": {
+    "required": true,
+    "coverage": null,
+    "state": "bake not yet run; projection lands in material-pass, behind the camera-overlay precondition"
+  },
+  "multiAngle": {
+    "degenerate": false,
+    "angles": [
+      {
+        "id": "render_right.png",
+        "azimuth": 90,
+        "ratio": 0.38
+      },
+      {
+        "id": "render_three-quarter-front.png",
+        "azimuth": 315,
+        "elevation": 15,
+        "ratio": 0.8311
+      },
+      {
+        "id": "render_top-down.png",
+        "azimuth": 0,
+        "elevation": 82,
+        "ratio": 0.6162
+      }
+    ]
+  },
+  "approximationNotes": [
+    "opposite-flank artwork mirrored, not observed (confidence 0.3)",
+    "every lateral (X) dimension inferred from a three-quarter icon plus published MP9 proportions (confidence 0.45)",
+    "float unknown: the plugin's approximated light-edge wear mask, bounded above by the observed condition",
+    "paint seed unknown: fixed centred placement, which custom-paint-job makes seed-independent",
+    "muzzle device is a closed cylinder at blockout; the measured 11-station stepped lathe profile is deferred to form-refinement",
+    "handguard grooves, grip ribs and plate serrations routed to material normal+bump relief rather than geometry: measured relief is 1-2 px in a 2000 px reference, and the plugin's own recipe table says 'Grip Texture | Normal map | NOT geometry'"
+  ],
+  "measurementProvenance": {
+    "silhouetteIoU/aspectRatioDelta/scaleDelta": "forge/stage4_review/diagnose_render.py Tier 1, passed, renderHash 997d8ae8f7b43deb",
+    "multiAngle": "forge/stage4_review/diagnose_render_multi_angle.py \u2014 no degenerate view",
+    "criticalFeatures": "agent vision on cmp_blockout.png, cross-checked against check_bbox.py (all 16 component world bboxes within 6 mm of their reference-measured windows)",
+    "nulls": "finishMaterialResponse, identityDetail, paintedRegions and projection.coverage do not exist at blockout: this pipeline applies materials at material-pass and bakes the projection there too. They are reported as null rather than filled with placeholder numbers."
+  }
+}

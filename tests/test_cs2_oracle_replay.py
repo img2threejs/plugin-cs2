@@ -61,6 +61,40 @@ class Cs2OracleReplay(unittest.TestCase):
         self.assertEqual(report["verdict"], "pass")
         self.assertEqual(report["failedGates"], [])
         self.assertGreaterEqual(report["metrics"]["silhouetteIoU"], 0.95)
+        # Re-frozen for `phase-aware-cs2-review` (deferral fields added; diff was additions-only).
+        # A future change that starts deferring inside the oracle path must be caught here.
+        self.assertEqual(report["deferredGates"], [])
+        self.assertEqual(report["deferralCount"], 0)
+        self.assertEqual(report["mode"], "strict")
+
+    def test_replaying_with_allow_deferrals_reproduces_the_permissive_oracle(self) -> None:
+        # The flagless replay above IS the strict door (gates.json's shape). This companion covers
+        # the per-pass shape (domain.json carries --allow-deferrals); on the oracle's complete
+        # inputs the two reports differ ONLY in the mode stamp, which this fixture pins.
+        expected = (ORACLE / "cs2-review.allow-deferrals.json").read_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "replay.json"
+            proc = subprocess.run(
+                [
+                    sys.executable, str(CS2_REVIEW),
+                    "--manifest", str(ORACLE / "cs2-intake.json"),
+                    "--metrics", str(ORACLE / "cs2-review-inputs.json"),
+                    "--out", str(out),
+                    "--allow-deferrals",
+                ],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, f"cs2_review.py failed:\n{proc.stderr}")
+            actual = out.read_bytes()
+        self.assertEqual(
+            actual, expected,
+            "permissive-mode review output drifted from the recorded oracle. If the change was "
+            "intentional, re-record the fixture in the same commit and say so.",
+        )
+        strict = json.loads((ORACLE / "cs2-review.json").read_text())
+        permissive = json.loads(expected)
+        diff = {key for key in set(strict) | set(permissive) if strict.get(key) != permissive.get(key)}
+        self.assertEqual(diff, {"mode"}, "clean inputs must differ between modes only in the mode stamp")
 
 
 if __name__ == "__main__":

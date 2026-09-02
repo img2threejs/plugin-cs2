@@ -5,6 +5,38 @@ All notable changes to **plugin-cs2** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] — 2026-09-02
+
+### Changed
+
+- **The review gate is phase-aware, strict by default.** With no flag (the terminal `plugin-gates`
+  door), behavior is today's plus real teeth: a null metric fails, every `deferred` request is
+  refused, and `paintedRegions`/`criticalFeatures` must be non-empty (previously an empty array
+  passed those gates outright at every door). The per-pass row (`domain.json`) now carries
+  `--allow-deferrals`, under which the metrics file may explicitly defer the three gates whose
+  evidence the projection bake produces (`finishMaterialResponse`, `identityDetail`,
+  `projection-coverage`) — previously those rejected every pass before material-pass on metrics
+  that could not exist yet, teaching agents to route around a blocking gate. Deferral is
+  declaration-only (prose grants nothing), fail-closed on unknown keys, and refused when the
+  metric is present (`deferral-conflict`). OpenSpec change: `phase-aware-cs2-review`.
+- Every report now carries a provenance block: `mode`, `passId`, `pluginVersion`,
+  `deferredGates` (always present; empty means zero deferrals), `deferralCount`,
+  `spuriousDeferrals`. The byte-frozen oracle fixture was re-recorded in this same change — the
+  diff is exactly the new fields — and a permissive-mode oracle companion was added.
+- A deferred pass names each deferral in the envelope `reasons` (`deferred: <token>`), so it is
+  visible in the `img2.gate-run` aggregate, never a bare green.
+- Unrecognized CLI arguments now emit an `error` envelope on stdout before exit 2 (a newer
+  `gates.json` against a stale installed tool stays diagnosable).
+- `grimoire/intake/cs2_intake_contract.md` documents the metrics-file schema including `deferred`
+  with a worked example; `docs/cs2/review-gates.md` rewritten (it described pre-extraction
+  `forge/…` paths and a family gate removed in 0.1.0).
+
+### Rollback
+
+Reverting to 0.1.1 makes every deferred pass reject again — the safe direction; no workspace
+artifact needs migrating. Reports written by 0.1.1 lack the provenance block; `pluginVersion`
+distinguishes them.
+
 ## [0.1.1] — 2026-09-02
 
 ### Fixed
@@ -74,5 +106,6 @@ First release. Extracted from the `img2threejs` base skill, which no longer carr
 - Adapter geometry exists for knife (11 subtypes) and pistol (glock-18) only.
 - `detect_cs2.py` is a heuristic for triage and is never used for routing.
 
+[0.1.2]: https://github.com/img2threejs/plugin-cs2/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/img2threejs/plugin-cs2/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/img2threejs/plugin-cs2/releases/tag/v0.1.0
