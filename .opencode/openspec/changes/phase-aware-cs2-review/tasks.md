@@ -78,14 +78,14 @@
 
 ## 5. Release and delivery evidence
 
-- [ ] 5.1 Bump `plugin.json` to 0.1.2; tag `v0.1.2`; push with tag.
-- [ ] 5.2 Reinstall: `img2 add img2threejs/plugin-cs2 --ref v0.1.2 --force`; `img2 doctor` green.
+- [x] 5.1 Bump `plugin.json` to 0.1.2; tag `v0.1.2`; push with tag.
+- [x] 5.2 (doctor: ok, 3 plugins) Reinstall: `img2 add img2threejs/plugin-cs2 --ref v0.1.2 --force`; `img2 doctor` green.
       (Gates execute from `$IMG2_HOME/plugins/cs2` only — without this step nothing changes at
       runtime.)
-- [ ] 5.3 Capture acceptance artifact 1: a real pre-material per-pass run on a workspace (base =
+- [x] 5.3 (captured: scratchpad/accept-012/cs2-review.json + perpass-envelope.json) Capture acceptance artifact 1: a real pre-material per-pass run on a workspace (base =
       img2threejs `lab/cs2-plugin` @ ≥ 5ca9f81) producing `verdict: "pass"` with the three
       deferrals named and `mode: "allow-deferrals"`.
-- [ ] 5.4 Capture acceptance artifact 3: a real `run_gates.py --workspace .` execution at
+- [x] 5.4 (captured: scratchpad/accept-012/gate-run-aggregate.json — first real execution; blocking-stop verified via run_gates.py) Capture acceptance artifact 3: a real `run_gates.py --workspace .` execution at
       `plugin-gates` on a workspace whose metrics carry a `deferred` block → `img2.gate-run` with
       `cs2-review` `status: "fail"`, deferral named in `reasons`, `stopped: true` (first-ever real
       execution of this path).
