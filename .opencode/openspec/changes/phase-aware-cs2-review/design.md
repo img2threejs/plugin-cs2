@@ -82,6 +82,12 @@ truncations — a truncated justification is a worse audit artifact than a refus
 Deferring `projection-coverage` additionally requires `projection.required: true` present; an
 omitted `projection` block keeps hitting non-deferrable `projection-evidence-missing`.
 
+Action mapping for the new tokens (decided during the simplify pass, recorded here):
+`deferral-refused` and `deferral-invalid` are declaration errors the producer must fix in its
+inputs → `request-input`, like the neighboring `manifest-state`/`projection-evidence` tokens.
+`deferral-conflict` fires when the metric is present and failing — a real quality failure — so it
+falls through to `refine-code` with the underlying gate token, never `request-input`.
+
 ### D5 — Verdict vocabulary: keep `pass`; add scalars; both visibility planes
 
 A `pass-deferred` verdict would convert every deferred pass into an `append_review.py` refusal —

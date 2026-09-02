@@ -57,10 +57,7 @@ def _metrics(**overrides) -> dict:
 
 
 def _run(manifest: dict, metrics: dict, *, allow_deferrals: bool) -> dict:
-    return cs2_review.evaluate_knife_review(
-        manifest, metrics, _scene(), allow_deferrals=allow_deferrals,
-        deferrals=cs2_review._load_deferrals(metrics),
-    )
+    return cs2_review.evaluate_knife_review(manifest, metrics, _scene(), allow_deferrals=allow_deferrals)
 
 
 class PerPassDeferralSemantics(unittest.TestCase):
@@ -140,6 +137,15 @@ class DeferralTruthTable(unittest.TestCase):
         self.assertEqual(report["verdict"], "pass")
         self.assertNotIn("identityDetail", report["deferredGates"])
         self.assertEqual(report["spuriousDeferrals"], ["identityDetail"])
+
+    def test_action_mapping_for_deferral_tokens(self):
+        # Declaration errors ask for fixed inputs; a conflict is a real quality failure.
+        conflict = _run(_manifest(), _metrics(finishMaterialResponse=0.1, deferred={"finishMaterialResponse": "later"}), allow_deferrals=True)
+        self.assertEqual(conflict["action"], "refine-code")
+        invalid = _run(_manifest(), _metrics(deferred={"silhouetteIoU": "later"}), allow_deferrals=True)
+        self.assertEqual(invalid["action"], "request-input")
+        refused = _run(_manifest(), _metrics(deferred={"finishMaterialResponse": "later"}), allow_deferrals=False)
+        self.assertEqual(refused["action"], "request-input")
 
 
 class ProjectionDeferralPrecondition(unittest.TestCase):
@@ -281,6 +287,12 @@ class EnvelopeAndCli(unittest.TestCase):
         self.assertEqual(envelope["reasons"], ["deferred: finishMaterialResponse"])
         self.assertEqual(envelope["evidence"]["deferredGates"], ["finishMaterialResponse"])
         self.assertEqual(envelope["evidence"]["mode"], "allow-deferrals")
+
+    def test_help_still_exits_zero(self):
+        # Regression: an over-broad SystemExit catch once turned --help's exit 0 into 2.
+        proc = subprocess.run([sys.executable, str(CS2_REVIEW), "--help"], capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("--allow-deferrals", proc.stdout)
 
     def test_unknown_flag_emits_an_error_envelope_before_exit_2(self):
         proc = self._cli(_metrics(), "--terminal")

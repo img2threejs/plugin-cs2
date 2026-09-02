@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import os
 import sys
@@ -41,9 +42,16 @@ REQUIRED_THRESHOLDS = {
 # zero evaluated gates.
 DEFERRABLE_GATES = ("finishMaterialResponse", "identityDetail", "projection-coverage")
 MAX_DEFERRAL_REASON_CHARS = 200
-PLUGIN_VERSION = json.loads(
-    (Path(__file__).resolve().parent.parent / "plugin.json").read_text(encoding="utf-8")
-)["version"]
+
+
+@functools.lru_cache(maxsize=1)
+def _plugin_version() -> str:
+    # Read lazily, not at import: this is a blocking-gate binary, and a missing or corrupted
+    # plugin.json must surface as an error ENVELOPE from main(), never as a bare import-time
+    # traceback the gate runner can only report as opaque.
+    return json.loads(
+        (Path(__file__).resolve().parent.parent / "plugin.json").read_text(encoding="utf-8")
+    )["version"]
 
 
 def load_review_scene(path: Path) -> dict[str, Any]:
@@ -104,10 +112,14 @@ def _load_deferrals(inputs: dict[str, Any]) -> dict[str, str]:
     return dict(raw)
 
 
-def _region_results(inputs: dict[str, Any], threshold: float) -> tuple[list[dict[str, Any]], list[str]]:
+def _region_results(inputs: dict[str, Any], threshold: float, *, strict: bool = False) -> tuple[list[dict[str, Any]], list[str]]:
     raw = inputs.get("paintedRegions", [])
     if not isinstance(raw, list):
         return [], ["painted-regions-invalid"]
+    if strict and not raw:
+        # The strict door's teeth: an empty list iterated zero times and passed this gate outright
+        # at every door. A CS2 skin is a paint job; non-emptiness is unconditional (design D7).
+        return [], ["painted-regions-empty"]
     results: list[dict[str, Any]] = []
     failures: list[str] = []
     for region in raw:
@@ -125,10 +137,12 @@ def _region_results(inputs: dict[str, Any], threshold: float) -> tuple[list[dict
     return results, failures
 
 
-def _critical_feature_failures(inputs: dict[str, Any], default_threshold: float) -> list[str]:
+def _critical_feature_failures(inputs: dict[str, Any], default_threshold: float, *, strict: bool = False) -> list[str]:
     raw = inputs.get("criticalFeatures", [])
     if not isinstance(raw, list):
         return ["critical-features-invalid"]
+    if strict and not raw:
+        return ["critical-features-empty"]
     failures: list[str] = []
     for feature in raw:
         if not isinstance(feature, dict) or not isinstance(feature.get("id"), str):
@@ -148,10 +162,9 @@ def evaluate_knife_review(
     review_scene: dict[str, Any],
     *,
     allow_deferrals: bool = False,
-    deferrals: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     thresholds = review_scene["thresholds"]
-    deferrals = deferrals if deferrals is not None else _load_deferrals(inputs)
+    deferrals = _load_deferrals(inputs)
     failed: list[str] = []
     deferred_gates: list[str] = []
     spurious_deferrals: list[str] = []
@@ -177,35 +190,32 @@ def evaluate_knife_review(
     def honored(token: str) -> bool:
         return allow_deferrals and token in deferrals and token in DEFERRABLE_GATES
 
+    def judge(token: str, state: str) -> None:
+        # The one definition of the deferral truth table (design D4); every deferrable gate routes
+        # through here so the cells cannot drift apart between call sites.
+        if state == "missing":
+            if honored(token):
+                deferred_gates.append(token)
+            else:
+                failed.append(token)
+        elif state == "failing":
+            failed.append(token)
+            if honored(token):
+                failed.append(f"deferral-conflict:{token}")
+        elif honored(token):
+            spurious_deferrals.append(token)
+
     for key in ("silhouetteIoU", "aspectRatioDelta", "scaleDelta"):
         maximum = key != "silhouetteIoU"
         if _failed_threshold(inputs, key, float(thresholds[key]), maximum=maximum):
             failed.append(key)
     for key in ("finishMaterialResponse", "identityDetail"):
-        state = _metric_state(inputs.get(key), float(thresholds[key]))
-        if state == "missing":
-            if honored(key):
-                deferred_gates.append(key)
-            else:
-                failed.append(key)
-        elif state == "failing":
-            failed.append(key)
-            if honored(key):
-                failed.append(f"deferral-conflict:{key}")
-        elif honored(key):
-            spurious_deferrals.append(key)
+        judge(key, _metric_state(inputs.get(key), float(thresholds[key])))
 
-    region_results, region_failures = _region_results(inputs, float(thresholds["paintedRegion"]))
+    strict = not allow_deferrals
+    region_results, region_failures = _region_results(inputs, float(thresholds["paintedRegion"]), strict=strict)
     failed.extend(region_failures)
-    failed.extend(_critical_feature_failures(inputs, float(thresholds["identityDetail"])))
-    if not allow_deferrals:
-        # Strict-door teeth for the vacuous arrays: empty iterates zero times and passed outright
-        # at every door before this change. Non-emptiness, not set equality -- the scene's identity
-        # lists are knife anatomy and this gate is family-neutral (design D7).
-        for field, token in (("paintedRegions", "painted-regions-empty"), ("criticalFeatures", "critical-features-empty")):
-            value = inputs.get(field)
-            if value is None or (isinstance(value, list) and not value):
-                failed.append(token)
+    failed.extend(_critical_feature_failures(inputs, float(thresholds["identityDetail"]), strict=strict))
 
     projection = inputs.get("projection")
     if manifest.get("route") == "reference-projection":
@@ -214,18 +224,7 @@ def evaluate_knife_review(
             # coverage number still requires declaring the projection obligation itself.
             failed.append("projection-evidence-missing")
         else:
-            state = _metric_state(projection.get("coverage"), float(thresholds["projectionCoverage"]))
-            if state == "missing":
-                if honored("projection-coverage"):
-                    deferred_gates.append("projection-coverage")
-                else:
-                    failed.append("projection-coverage")
-            elif state == "failing":
-                failed.append("projection-coverage")
-                if honored("projection-coverage"):
-                    failed.append("deferral-conflict:projection-coverage")
-            elif honored("projection-coverage"):
-                spurious_deferrals.append("projection-coverage")
+            judge("projection-coverage", _metric_state(projection.get("coverage"), float(thresholds["projectionCoverage"])))
 
     multi_angle = inputs.get("multiAngle")
     if not isinstance(multi_angle, dict) or multi_angle.get("degenerate") is True:
@@ -239,7 +238,10 @@ def evaluate_knife_review(
     report = {
         "verdict": "pass" if not failed else "reject",
         "action": "continue" if not failed else ("request-input" if any(
-            item.startswith(("manifest-state", "projection-evidence", "orbit-coverage", "deferral-"))
+            # deferral-refused / deferral-invalid are declaration errors the producer must fix in
+            # its inputs; deferral-conflict is deliberately NOT here -- the metric is present and
+            # failing, a real quality failure that routes to refine-code like any other.
+            item.startswith(("manifest-state", "projection-evidence", "orbit-coverage", "deferral-refused", "deferral-invalid"))
             for item in failed
         ) else "refine-code"),
         "family": family,
@@ -269,7 +271,7 @@ def evaluate_knife_review(
         # deferrals" signal, distinct from "written by an older tool".
         "mode": "allow-deferrals" if allow_deferrals else "strict",
         "passId": inputs.get("passId"),
-        "pluginVersion": PLUGIN_VERSION,
+        "pluginVersion": _plugin_version(),
         "deferredGates": deferred_gates,
         "deferralCount": len(deferred_gates),
         "spuriousDeferrals": spurious_deferrals,
@@ -352,22 +354,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="honor the metrics file's deferred map for the closed deferrable gate set (per-pass invocations only)",
     )
-    try:
-        args = parser.parse_args(argv)
-    except SystemExit:
-        return 2
-
-    envelope = _print_envelope
+    # No SystemExit wrapper: _EnvelopeParser.error() already printed the envelope and exits 2, and
+    # catching here would also turn --help's normal exit 0 into a failure.
+    args = parser.parse_args(argv)
 
     try:
         manifest = _load_object(args.manifest, "manifest")
         metrics = _load_object(args.metrics, "metrics")
         scene = load_review_scene(args.scene.expanduser())
-        deferrals = _load_deferrals(metrics)
-        report = evaluate_knife_review(
-            manifest, metrics, scene,
-            allow_deferrals=args.allow_deferrals, deferrals=deferrals,
-        )
+        report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
         _write_json_atomic(args.out, report)
         passed = report["verdict"] == "pass"
         # A deferred pass must be visible in the aggregate, not only in the report file: reasons
@@ -376,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
             reasons = [f"deferred: {token}" for token in report["deferredGates"]]
         else:
             reasons = [str(item) for item in report.get("failedGates", [])] or ["review verdict: " + str(report["verdict"])]
-        envelope(
+        _print_envelope(
             "pass" if passed else "fail",
             reasons,
             {
@@ -389,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0 if passed else 1
     except (OSError, ValueError, json.JSONDecodeError) as error:
-        envelope("error", [str(error)], {})
+        _print_envelope("error", [str(error)], {})
         print(f"error: {error}", file=sys.stderr)
         return 2
 

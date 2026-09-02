@@ -61,7 +61,7 @@
 - [x] 3.11 Add a strict-mode oracle companion so the strict path has oracle coverage (the existing
       replay exercises only the permissive invocation).
 - [x] 3.12 Raise `COLLECTED_FLOOR` in `tests/test_suite_integrity.py` to the new collected count
-      and state the number in this file when done: **66** (was 36).
+      and state the number in this file when done: **68** (was 36).
 
 ## 4. Documentation
 
@@ -95,9 +95,9 @@
 
 ## 6. Tracked follow-ups filed outside this change
 
-- [ ] 6.1 Base issue (img2threejs): make `--domain-review-json` mandatory when the workspace
+- [x] 6.1 (img2threejs#122) Base issue (img2threejs): make `--domain-review-json` mandatory when the workspace
       resolves a domain profile (the non-attachment bypass observed live).
-- [ ] 6.2 Harness issue (img2-harness): inject `IMG2_GATE_PHASE=terminal` in `gate_runner`'s child
+- [x] 6.2 (img2#1) Harness issue (img2-harness): inject `IMG2_GATE_PHASE=terminal` in `gate_runner`'s child
       env; when present it overrides `--allow-deferrals` (defense-in-depth layer 3).
-- [ ] 6.3 Plugin issue: `maxOrbitCollapseRatio` declared but never applied; the
+- [x] 6.3 (plugin-cs2#1) Plugin issue: `maxOrbitCollapseRatio` declared but never applied; the
       `cs2_review_contract.py` / scene-fixture split and the README `GOLDEN_THRESHOLDS` pointer.
