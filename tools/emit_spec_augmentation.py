@@ -27,7 +27,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cs2_spec_template import apply_cs2_template, apply_cs2_manifest_evidence  # noqa: E402
 
 ARTIFACT_KIND = "spec-augmentation-v1"
-PLUGIN_VERSION = "0.1.0"
+# Read from plugin.json so the provenance stamp cannot drift from the released version -- it did
+# once: 0.1.1 shipped with a hardcoded "0.1.0" here, making fixed artifacts indistinguishable from
+# broken ones by the very field that exists to attribute them.
+PLUGIN_VERSION = json.loads((Path(__file__).resolve().parent.parent / "plugin.json").read_text(encoding="utf-8"))["version"]
 
 # Keys the BASE owns. Everything else this template writes is domain territory and ships as an
 # opaque section. Deliberately a deny-list, not an allow-list: an allow-list would have to enumerate

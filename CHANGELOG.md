@@ -74,5 +74,5 @@ First release. Extracted from the `img2threejs` base skill, which no longer carr
 - Adapter geometry exists for knife (11 subtypes) and pistol (glock-18) only.
 - `detect_cs2.py` is a heuristic for triage and is never used for routing.
 
-[Unreleased]: https://github.com/img2threejs/plugin-cs2/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/img2threejs/plugin-cs2/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/img2threejs/plugin-cs2/releases/tag/v0.1.0
