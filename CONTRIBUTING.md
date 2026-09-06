@@ -92,6 +92,14 @@ the line after it, or use the exit code — nothing a test prints can forge that
 
 This repository ships no Counter-Strike 2 assets and must never start. See [SECURITY.md](SECURITY.md).
 
+## Publishing to npm
+
+1. Bump the version in **both** `plugin.json` and `package.json` — CI's `version-sync` job fails the build if they disagree.
+2. Update `CHANGELOG.md`.
+3. Commit the bump.
+4. Tag the commit `vX.Y.Z` (matching the new version) and push the tag.
+5. The `publish` workflow picks up the tag, re-checks the version match, and runs `npm publish --provenance --access public` against `@img2threejs/plugin-cs2`.
+
 ## License
 
 By contributing you agree your contributions are licensed under Apache-2.0, the same as this project.
