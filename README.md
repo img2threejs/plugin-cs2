@@ -19,6 +19,15 @@ img2 doctor                       # expect: ok (N plugins, 0 warnings)
 
 Requires harness `>=0.2.1` and `coreApi 1`. Python 3.10+, standard library only for the required path.
 
+### Installer package
+
+A separate, public installer-only npm package `@img2threejs/cs2` (global binary `img2-cs2`,
+plugin source pinned to released commit `bee5766e`, plugin 0.1.2) wraps `img2 add` for users
+who prefer npm. The npm tarball contains only the launcher; the plugin source is fetched
+separately and is **not** included in this npm package. See
+[`CLI_QUICKSTART.md`](CLI_QUICKSTART.md) and [`cli/README.md`](cli/README.md) for installer
+usage, release notes, and trusted-publisher configuration.
+
 ## Use
 
 Declare the domain on the state file:
