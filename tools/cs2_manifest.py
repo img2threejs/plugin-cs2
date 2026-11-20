@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -12,6 +13,7 @@ from typing import Any, Final
 from cs2_foundation import enrich_manifest_with_metadata, normalize_cs2_metadata, resolve_identity
 from cs2_review_contract import build_review_scene
 from detect_cs2 import detect_cs2_signals
+from cs2_routing import validate_route_selection
 
 SCHEMA_VERSION: Final[int] = 1
 # No family gate. This plugin serves any CS2 item: the finish system -- paint seed, float, wear,
@@ -80,6 +82,17 @@ def _classification_error(record: Any) -> str | None:
         return "classification evidenceRefs must contain at least one reference"
     if not isinstance(record.get("provider"), str) or not isinstance(record.get("version"), str):
         return "classification provider/version are required"
+    if not record["provider"].strip() or not record["version"].strip():
+        return "classification provider/version must be non-empty"
+    if record.get("timedOut", False) is not False:
+        return "authoritative classification timed out or has invalid timeout state"
+    if confidence < 0.82:
+        return "authoritative classification confidence is below 0.82"
+    if (record.get("isCs2", True) is not True
+            or record.get("domain", "cs2") != "cs2"
+            or record.get("kind") in ("non-cs2", "look-alike", "unknown")
+            or family in {"non-cs2", "look-alike", "unknown"}):
+        return "authoritative classification vetoes CS2 identity"
     return None
 
 
@@ -101,6 +114,10 @@ def build_manifest(
     explicit_identity: dict[str, Any] | None = None,
     probe_artifact: dict[str, Any] | None = None,
     admission_artifact: dict[str, Any] | None = None,
+    route_decision: dict[str, Any] | None = None,
+    validated_route_sha256: str | None = None,
+    object_id: str | None = None,
+    resolved_sha: str | None = None,
 ) -> dict[str, Any]:
     resolved = reference.expanduser().resolve()
     # The base pipeline already probed the image and ruled on admission at its reference-admission
@@ -125,6 +142,7 @@ def build_manifest(
         "sourceViews": [{
             "role": "reference",
             "path": str(resolved),
+            "sha256": hashlib.sha256(resolved.read_bytes()).hexdigest() if resolved.is_file() else None,
             "hash": admission.get("provenance", {}).get("pHash"),
             "width": technical.get("width"),
             "height": technical.get("height"),
@@ -148,6 +166,16 @@ def build_manifest(
         "extensions": {},
         "reviewScene": build_review_scene("not-supplied"),
     }
+    if route_decision is not None:
+        # The digest is trusted-caller input, NOT an authentication token. The base
+        # must validate its own journal/lease/freshness before this handoff.
+        manifest["extensions"]["routeSelection"] = validate_route_selection(
+            route_decision, validated_decision_sha256=validated_route_sha256,
+            object_id=object_id, resolved_sha=resolved_sha,
+            reference_sha256=hashlib.sha256(resolved.read_bytes()).hexdigest(),
+        )
+    elif any(value is not None for value in (validated_route_sha256, object_id, resolved_sha)):
+        raise ValueError("route handoff fields require a route decision")
     if not admission.get("admitted"):
         manifest["rejectionReasons"] = admission.get("reasons", ["reference failed admission"])
         return manifest
@@ -193,6 +221,9 @@ def validate_manifest(manifest: dict[str, Any]) -> bool:
     # making the manifest invalid. This was the fourth place the knife restriction was enforced --
     # build_classification_record, the classification validator, the state branch and here -- which
     # is why it drifted out of step with the documentation.
+    if manifest.get("extensions", {}).get("routeSelection") and manifest["state"] == "proceed":
+        if _classification_error(manifest.get("classification")):
+            return False
     return True
 
 
@@ -227,8 +258,17 @@ def main(argv: list[str]) -> int:
     # exactly what this plugin must not do, and silently defaulting would hide a skipped base gate.
     parser.add_argument("--admission", type=Path, required=True, help="admission verdict JSON from the base pipeline")
     parser.add_argument("--probe", type=Path, required=True, help="image probe JSON from the base pipeline")
+    parser.add_argument("--route-decision", type=Path, help="base-validated profile intent; never identity")
+    parser.add_argument("--validated-route-sha256", help="trusted base caller's canonical route digest; not authentication")
+    parser.add_argument("--object-id", help="object selected by the base route")
+    parser.add_argument("--resolved-sha", help="CS2 provider pin resolved by the base")
     args = parser.parse_args(argv)
-    if args.resume and args.out.exists():
+    handoff = (args.validated_route_sha256, args.object_id, args.resolved_sha)
+    if args.route_decision is None and any(value is not None for value in handoff):
+        parser.error("route handoff flags require --route-decision")
+    if args.route_decision is not None and any(value is None for value in handoff):
+        parser.error("--route-decision requires --validated-route-sha256, --object-id and --resolved-sha")
+    if args.resume and args.out.exists() and args.route_decision is None:
         existing = json.loads(args.out.read_text(encoding="utf-8"))
         if isinstance(existing, dict) and validate_manifest(existing):
             print(json.dumps({"state": existing["state"], "out": str(args.out.resolve()), "resumed": True}, ensure_ascii=False))
@@ -250,6 +290,10 @@ def main(argv: list[str]) -> int:
         exactness_tier=args.exactness_tier,
         probe_artifact=_read(args.probe, "probe"),
         admission_artifact=_read(args.admission, "admission"),
+        route_decision=_read(args.route_decision, "route decision") if args.route_decision else None,
+        validated_route_sha256=args.validated_route_sha256,
+        object_id=args.object_id,
+        resolved_sha=args.resolved_sha,
     )
     manifest["extensions"]["compatibilityMode"] = args.cs2_pipeline
     persist_manifest(manifest, args.out)

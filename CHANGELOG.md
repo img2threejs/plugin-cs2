@@ -5,6 +5,29 @@ All notable changes to **plugin-cs2** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- D3 local `route.json` for the CS2 spec-augmentation profile and an explicit trusted-base
+  route handoff with canonical digest, image, object and pinned-provider checks. A matching
+  digest provides integrity only, not proof of base validation or CS2 identity.
+- Offline four-group evidence snapshots with SHA256 freshness/path checks, strict report
+  recomputation and exact shared-schema strategy/repair plans backed by concrete hash-bound
+  successor specs and explicit trusted scope. No guessed permission/provenance, implicit
+  template/global-field edit, no-op or executable request-input placeholder is emitted.
+- Standalone regression cases for routed look-alikes, spoofed route/hash pairs, classification
+  vetoes, stale evidence and unchanged finish/detail enforcement.
+
+### Changed
+
+- Manifest intake now enforces the documented independent classification floor (0.82), timeout,
+  evidence/provider requirements and explicit non-CS2 veto. Routed resume rechecks classification.
+  Routed augmentation/review cannot bypass classification by forging a manifest's `proceed`.
+- Reference views retain real-byte SHA256 alongside existing perceptual hash provenance.
+  Base journal/lease validation, crop handoff, actual matched render/measurement producers and
+  decision application remain base integration responsibilities; no live quality result is claimed.
+
 ## [0.1.2] — 2026-09-02
 
 ### Changed

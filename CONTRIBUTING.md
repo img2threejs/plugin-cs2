@@ -36,8 +36,8 @@ those is a change to the base skill or the contract, not to this repo.
 - **The subtype is authoritative or it is unknown.** A Talon has no crossguard; a Karambit does.
   Reporting a part as not-applicable is correct; inventing one is not, and a contribution that makes
   the run guess a subtype will be rejected however good the geometry is.
-- **`detect_cs2.py` is triage, never routing.** Routing is by declared domain. Do not wire detection
-  into a decision path.
+- **`detect_cs2.py` is triage, never routing.** Entry is by declared profile or a base-validated
+  recorded route selection. Neither route probability nor detection establishes CS2 identity.
 
 ## Development
 

@@ -1,0 +1,13 @@
+{
+  "kind": "img2.route-card",
+  "version": 1,
+  "outputKind": "spec-augmentation",
+  "requires": {},
+  "notFor": {},
+  "costClass": "local",
+  "deps": [{"probe": "python3>=3.10"}],
+  "display": {
+    "appliesTo": "CS2 weapon and glove skins requiring evidence-backed finish, wear and identity detail. Selection requests the CS2 profile only; independent authoritative classification can veto it. The augmentation is consumed by a base child that produces a 3D object.",
+    "notFor": "Look-alikes or items without authoritative CS2 classification. Routing probability, names and heuristic detection do not establish identity. No game assets are supplied; exact textures require separately acquired, legally usable evidence."
+  }
+}

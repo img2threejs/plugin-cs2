@@ -21,6 +21,11 @@ called `"AK-47 | Redline"` does not self-identify, by design. Name similarity is
 (`PLUGIN_CONTRACT.md` §13), and the base skill previously applied CS2's quality floors to anything
 whose name happened to contain one of seventeen keywords, `"fade"` among them.
 
+A base-validated recorded `routeDecision` selecting the pinned CS2 profile also counts as explicit
+profile intent. It never supplies identity: obtain the independent authoritative classification
+record (confidence at least 0.82, no timeout). Negative CS2 classification, including a look-alike,
+vetoes entry regardless of route probability. Finish/detail gates remain unchanged.
+
 ## What it contributes
 
 Three setup steps, spliced before the base's `local-spec-search`, and one blocking gate in every

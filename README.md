@@ -35,6 +35,13 @@ previously applied CS2's quality floors to anything whose name contained one of 
 There is no `--cs2` flag. The base pulls this plugin's augmentation automatically once the domain
 resolves.
 
+The base may also select `profile:cs2@<resolvedSha>` through a recorded `routeDecision`.
+This expresses profile intent, **not CS2 identity**: the independent authoritative classification
+step still runs and can veto a look-alike, missing evidence, confidence below 0.82, or a timeout.
+`route.json` declares a local `spec-augmentation` candidate; the augmentation is consumed inside
+the base child, whose terminal output is a `3d-object`, not an augmentation handed to composition.
+See the intake contract for the trusted-caller handoff and offline decision snapshots.
+
 ## What it contributes
 
 Four setup steps spliced immediately **before** the base's `local-spec-search`, and one blocking gate
@@ -104,6 +111,8 @@ skills/                     per-subtype notes
 | `cs2_spec_template.py` | yes | The finish, material and component recipe |
 | `cs2_adapters.py` | yes | Per-family geometry adapters |
 | `cs2_foundation.py` | yes | Identity resolution: explicit → resolved → classification |
+| `cs2_routing.py` | routed entry | Checks the base caller's route digest, object, reference and provider pin; never classifies |
+| `cs2_decision_adapter.py` | decision inputs | Hash-checks current evidence and exposes bounded plans/repairs without consulting a provider |
 | `cs2_review_contract.py` | yes | Review scene and the golden thresholds |
 | `detect_cs2.py` | no | Heuristic detection, for triage only — never for routing |
 | `locate_cs2_vpk.py` | no | Finds a local CS2 install's `pak01_dir.vpk` |
@@ -195,7 +204,7 @@ indentation error once silently dropped three tests here, and only counting caug
 
 - Paint seed and float **cannot** be recovered from an image. They are approximated and must be
   reported as such.
-- `detect_cs2.py` is a heuristic for triage. Routing is by declared domain, never by detection.
+- `detect_cs2.py` is triage only. Declared or base-validated routed profile intent never replaces authoritative classification.
 - The optional exactness tools need your own legal CS2 install and, for texture extraction, a
   Source2Viewer-CLI binary you supply.
 

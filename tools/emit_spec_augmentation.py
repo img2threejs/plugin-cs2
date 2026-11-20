@@ -25,6 +25,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cs2_spec_template import apply_cs2_template, apply_cs2_manifest_evidence  # noqa: E402
+from cs2_manifest import _classification_error, validate_manifest  # noqa: E402
 
 ARTIFACT_KIND = "spec-augmentation-v1"
 # Read from plugin.json so the provenance stamp cannot drift from the released version -- it did
@@ -47,6 +48,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         manifest = json.loads(Path(args.manifest).expanduser().read_text(encoding="utf-8"))
         if not isinstance(manifest, dict):
             raise ValueError("manifest must be a JSON object")
+        if manifest.get("extensions", {}).get("routeSelection"):
+            if (not validate_manifest(manifest) or manifest.get("state") != "proceed"
+                    or _classification_error(manifest.get("classification"))):
+                raise ValueError("routed CS2 augmentation requires independent authoritative classification")
 
     scratch: dict[str, Any] = {}
     apply_cs2_template(

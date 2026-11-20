@@ -182,6 +182,11 @@ def evaluate_knife_review(
     # item whose geometry the agent inferred, which is the case this plugin now serves.
     if manifest.get("state") != "proceed":
         failed.append(f"manifest-state:{manifest.get('state', 'missing')}")
+    if manifest.get("extensions", {}).get("routeSelection"):
+        # A matching route hash cannot launder a missing/negative classification.
+        from cs2_manifest import _classification_error
+        if _classification_error(manifest.get("classification")):
+            failed.append("manifest-state:classification-veto")
 
     # Strict is the default: a deferral request is itself refused, and an unknown or
     # non-deferrable key is a named failure in either mode -- a typo must not defer nothing while
