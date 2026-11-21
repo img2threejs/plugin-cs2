@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import math
 import os
 import sys
 import tempfile
@@ -74,7 +75,7 @@ def load_review_scene(path: Path) -> dict[str, Any]:
 
 
 def _number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def _failed_threshold(metrics: dict[str, Any], key: str, threshold: float, *, maximum: bool) -> bool:
@@ -358,13 +359,15 @@ class _EnvelopeParser(argparse.ArgumentParser):
 
 def main(argv: list[str] | None = None) -> int:
     parser = _EnvelopeParser(description="Evaluate the blocking CS2 review contract")
-    parser.add_argument("--manifest", type=Path, required=True, help="validated cs2-intake.json")
-    parser.add_argument("--metrics", type=Path, required=True, help="render/review metrics JSON")
+    parser.add_argument("--manifest", type=Path, help="validated cs2-intake.json (per-pass evaluation)")
+    parser.add_argument("--metrics", type=Path, help="render/review metrics JSON (per-pass evaluation)")
+    parser.add_argument("--workspace", type=Path, default=Path.cwd())
+    parser.add_argument("--terminal-inputs", help="recompute terminal metrics from pinned workspace inputs")
     parser.add_argument(
         "--scene",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "knife_review_scene.json",
-        help="versioned review scene fixture",
+        default=Path("cs2-review-scene.json"),
+        help="current workspace review scene; terminal mode checks exact reproducibility",
     )
     parser.add_argument("--out", type=Path, required=True, help="output review report JSON")
     # Strict is the DEFAULT: with no flag, deferral requests are refused and null metrics fail.
@@ -380,10 +383,25 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        manifest = _load_object(args.manifest, "manifest")
-        metrics = _load_object(args.metrics, "metrics")
-        scene = load_review_scene(args.scene.expanduser())
-        report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
+        if args.terminal_inputs:
+            if args.allow_deferrals or args.manifest or args.metrics:
+                raise ValueError("terminal inputs cannot be combined with deferrals or authored metrics")
+            from cs2_terminal import _json, reproduce_terminal
+            from cs2_evidence import read_workspace_file
+            raw = read_workspace_file(args.workspace, args.terminal_inputs, role="terminal-inputs",
+                                      missing_code="terminal-input-missing")
+            result = reproduce_terminal(args.workspace, inputs=_json(raw, "terminal-inputs"))
+            scene_path = args.scene if args.scene.is_absolute() else args.workspace / args.scene
+            if load_review_scene(scene_path) != result["scene"]:
+                raise ValueError("scene-not-reproducible")
+            report = result["report"]
+        else:
+            if args.manifest is None or args.metrics is None:
+                raise ValueError("--manifest and --metrics are required outside terminal replay")
+            manifest = _load_object(args.manifest, "manifest")
+            metrics = _load_object(args.metrics, "metrics")
+            scene = load_review_scene(args.scene.expanduser())
+            report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
         _write_json_atomic(args.out, report)
         passed = report["verdict"] == "pass"
         # A deferred pass must be visible in the aggregate, not only in the report file: reasons
@@ -392,10 +410,12 @@ def main(argv: list[str] | None = None) -> int:
             reasons = [f"deferred: {token}" for token in report["deferredGates"]]
         else:
             reasons = [str(item) for item in report.get("failedGates", [])] or ["review verdict: " + str(report["verdict"])]
+        artifact_evidence = {"artifact": result["inputs"]["artifact"]} if args.terminal_inputs else {}
         _print_envelope(
             "pass" if passed else "fail",
             reasons,
             {
+                **artifact_evidence,
                 "report": str(args.out),
                 "verdict": report["verdict"],
                 "action": report.get("action"),

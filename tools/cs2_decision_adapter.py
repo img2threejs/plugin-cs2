@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from cs2_manifest import _classification_error, validate_manifest
-from cs2_review import _write_json_atomic, evaluate_knife_review, load_review_scene
+from cs2_review import _write_json_atomic, evaluate_knife_review
 from cs2_spec_template import make_cs2_feature_targets
 
 _GROUPS = {"routing", "build-strategy", "quality-review", "repair"}
@@ -276,8 +276,8 @@ def build_snapshot(
     if group in {"quality-review", "repair"}:
         metrics = _object(data["metrics"], "metrics")
         scene = _object(data["review-scene"], "review-scene")
-        canonical_scene = load_review_scene(Path(__file__).resolve().parents[1] / "tests/fixtures/knife_review_scene.json")
-        if scene.get("thresholds") != canonical_scene["thresholds"]:
+        from cs2_review_contract import TERMINAL_THRESHOLDS
+        if scene.get("thresholds") != TERMINAL_THRESHOLDS:
             raise ValueError("decision snapshots cannot change frozen CS2 gate thresholds")
         if metrics.get("passId") != pass_id:
             raise ValueError("metrics belong to another pass")

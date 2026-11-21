@@ -37,6 +37,8 @@ class Cs2OracleReplay(unittest.TestCase):
                     str(ORACLE / "cs2-intake.json"),
                     "--metrics",
                     str(ORACLE / "cs2-review-inputs.json"),
+                    "--scene",
+                    str(ROOT / "tests" / "fixtures" / "knife_review_scene.json"),
                     "--out",
                     str(out),
                 ],
@@ -68,9 +70,8 @@ class Cs2OracleReplay(unittest.TestCase):
         self.assertEqual(report["mode"], "strict")
 
     def test_replaying_with_allow_deferrals_reproduces_the_permissive_oracle(self) -> None:
-        # The flagless replay above IS the strict door (gates.json's shape). This companion covers
-        # the per-pass shape (domain.json carries --allow-deferrals); on the oracle's complete
-        # inputs the two reports differ ONLY in the mode stamp, which this fixture pins.
+        # Explicit historical scene preserves this per-pass oracle; production
+        # terminal review independently reconstructs its current workspace scene.
         expected = (ORACLE / "cs2-review.allow-deferrals.json").read_bytes()
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "replay.json"
@@ -79,6 +80,7 @@ class Cs2OracleReplay(unittest.TestCase):
                     sys.executable, str(CS2_REVIEW),
                     "--manifest", str(ORACLE / "cs2-intake.json"),
                     "--metrics", str(ORACLE / "cs2-review-inputs.json"),
+                    "--scene", str(ROOT / "tests" / "fixtures" / "knife_review_scene.json"),
                     "--out", str(out),
                     "--allow-deferrals",
                 ],

@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   template/global-field edit, no-op or executable request-input placeholder is emitted.
 - Standalone regression cases for routed look-alikes, spoofed route/hash pairs, classification
   vetoes, stale evidence and unchanged finish/detail enforcement.
+- A callable production terminal producer with a narrow program-owned base-host
+  boundary, pinned-input replay CLI, and deterministic silhouette, annotated
+  colour/detail, orbit-area and matched-lighting material-response measurements.
+  Missing real source observations/annotations refuse with named fields; no route
+  probability, invented semantic score or pixel-equality fraud heuristic is used.
+  Synthetic regression fixtures explicitly carry no renderer/expert authority.
 
 ### Changed
 
@@ -27,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reference views retain real-byte SHA256 alongside existing perceptual hash provenance.
   Base journal/lease validation, crop handoff, actual matched render/measurement producers and
   decision application remain base integration responsibilities; no live quality result is claimed.
+- Terminal gates now recompute current workspace capture/config evidence and bind
+  the existing base child artifact, rather than judging a bundled knife scene or
+  trusting hand-authored terminal metrics. Original thresholds remain frozen.
+  Host classifier/source provenance and journal-authenticated semantic review are
+  separate required trust boundaries, not authority granted by matching digests.
 
 ## [0.1.2] — 2026-09-02
 

@@ -286,7 +286,7 @@ class EnvelopeAndCli(unittest.TestCase):
             metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
             proc = subprocess.run(
                 [sys.executable, str(CS2_REVIEW), "--manifest", str(manifest_path),
-                 "--metrics", str(metrics_path), "--out", str(out_path), *args],
+                 "--metrics", str(metrics_path), "--scene", str(SCENE), "--out", str(out_path), *args],
                 capture_output=True, text=True,
             )
             proc.report = json.loads(out_path.read_text(encoding="utf-8")) if out_path.exists() else None
