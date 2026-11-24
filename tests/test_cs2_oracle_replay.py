@@ -24,9 +24,20 @@ ORACLE = Path(__file__).resolve().parent / "fixtures" / "oracle-talon"
 CS2_REVIEW = ROOT / "tools" / "cs2_review.py"
 
 
+def expected_report_bytes(name: str) -> bytes:
+    # Preserve every historical payload byte; only the declared producer version
+    # changes with a release. This does not certify the fixture's asset provenance.
+    expected = (ORACLE / name).read_bytes()
+    old = b'"pluginVersion": "0.1.2"'
+    if expected.count(old) != 1:
+        raise AssertionError("historical oracle must contain one frozen producer version")
+    version = json.loads((ROOT / "plugin.json").read_text())["version"]
+    return expected.replace(old, b'"pluginVersion": ' + json.dumps(version).encode())
+
+
 class Cs2OracleReplay(unittest.TestCase):
     def test_replaying_the_completed_run_reproduces_its_review_byte_for_byte(self) -> None:
-        expected = (ORACLE / "cs2-review.json").read_bytes()
+        expected = expected_report_bytes("cs2-review.json")
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "replay.json"
             proc = subprocess.run(
@@ -72,7 +83,7 @@ class Cs2OracleReplay(unittest.TestCase):
     def test_replaying_with_allow_deferrals_reproduces_the_permissive_oracle(self) -> None:
         # Explicit historical scene preserves this per-pass oracle; production
         # terminal review independently reconstructs its current workspace scene.
-        expected = (ORACLE / "cs2-review.allow-deferrals.json").read_bytes()
+        expected = expected_report_bytes("cs2-review.allow-deferrals.json")
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "replay.json"
             proc = subprocess.run(

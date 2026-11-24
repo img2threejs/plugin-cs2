@@ -21,6 +21,10 @@
   "setupAnchorBefore": "local-spec-search",
   "passSteps": [
     [
+      "cs2-review-scene",
+      "python3 {plugin_dir}/tools/cs2_review.py --prepare-scene --manifest cs2-intake.json --out cs2-review-scene.json"
+    ],
+    [
       "cs2-review",
       "python3 {plugin_dir}/tools/cs2_review.py --manifest cs2-intake.json --metrics cs2-review-inputs.json --scene cs2-review-scene.json --out cs2-review.json --allow-deferrals"
     ]

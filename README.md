@@ -44,8 +44,8 @@ See the intake contract for the trusted-caller handoff and offline decision snap
 
 ## What it contributes
 
-Four setup steps spliced immediately **before** the base's `local-spec-search`, and one blocking gate
-before `ai-review-recorded` in **every** correction pass.
+Four setup steps spliced immediately **before** the base's `local-spec-search`, plus a scene producer
+and per-pass review before `ai-review-recorded`. The terminal `plugin-gates` review remains blocking.
 
 | Step | Actor | What it does |
 |---|---|---|
@@ -53,6 +53,7 @@ before `ai-review-recorded` in **every** correction pass.
 | `cs2-authoritative-classification` | agent | Obtain an authoritative family/subtype record into `classification.json`. Guessing the subtype from the image is the failure this step exists to prevent. |
 | `cs2-manifest` | program | Builds and validates `cs2-intake.json`. Records `componentAdapter` when this plugin has geometry for the family, or `geometrySource: agent-inferred` when it does not. |
 | `cs2-spec-augmentation` | program | Emits `spec-augmentation.json` — the artifact the base **pulls** during spec authoring. |
+| `cs2-review-scene` | program | Refreshes `cs2-review-scene.json` from the current validated manifest's scene policy before each pass; never grants terminal authority. |
 | `cs2-review` | gate | Machine-readable verdict. **Blocking**: a failed verdict stops `continue` even when the global fidelity score passes. |
 
 It also contributes the `cs2` evidence collection to the base's local spec search.
@@ -246,18 +247,15 @@ measurably not good enough, not preemptively.
 
 ### Tune the review thresholds
 
-`tools/cs2_review_contract.py` → `GOLDEN_THRESHOLDS`:
+`tools/cs2_review_contract.py` keeps the legacy projection recipe's `GOLDEN_THRESHOLDS`
+separate from `TERMINAL_THRESHOLDS`, the exact program-owned review policy. Both scene-file
+loading and direct evaluation reject missing/extra keys, changed values, booleans, strings,
+and non-finite thresholds. Editing a scene cannot lower or raise that policy.
 
-```python
-silhouetteIoU 0.85 · aspectRatioDelta 0.05 · scaleDelta 0.08
-paintedRegionMask 0.85 · colorRegion 0.80 · patternRegion 0.75 · wearRegion 0.70
-```
-
-Two things to know before you touch these. **Raising a threshold is safe; lowering one is a real
-loosening** of the only domain gate in the run. And the oracle replay
-(`tests/test_cs2_oracle_replay.py`) asserts byte equality against a completed reconstruction — any
-threshold change fails it, deliberately. Re-freeze the fixture only when you can say why the new
-verdict is the correct one.
+The domain scene producer translates the current manifest's validated `reviewScene`
+camera, transform and environment into the per-pass evaluator schema; it does not load
+the historical test fixture or authenticate a renderer. Missing/invalid source policy
+fails before publishing a scene. Terminal review still reconstructs its scene from captures.
 
 ### Change where the steps land in the pipeline
 
@@ -281,8 +279,8 @@ Drop it under `docs/cs2/` or `docs/cs2-anatomy/` — both are already `optional_
 ## Tests
 
 ```bash
-python3 -m pytest tests -q                              # 36 passed
-python3 -m unittest discover -s tests -p 'test_*.py'    # same suite, stdlib runner
+python3 scripts/test_synthetic.py                    # fictional, fixture-independent subset; isolated HOME
+python3 -m unittest discover -s tests -p 'test_*.py'  # original full gate; includes historical fixtures
 ```
 
 The suite runs **standalone** — it does not need the base skill's test tree. It includes
@@ -290,6 +288,18 @@ The suite runs **standalone** — it does not need the base skill's test tree. I
 (`tests/fixtures/oracle-talon/`) that fails if the review output drifts by a single byte, and
 `test_suite_integrity.py`, which asserts the collected count against a recorded floor — a single
 indentation error once silently dropped three tests here, and only counting caught it.
+
+The synthetic subset physically excludes `tests/fixtures/` from its temporary source
+snapshot. CI runs this subset on Python 3.10 and 3.12, including the literal expanded
+domain pass commands and declared terminal gate with synthetic captures. It is **not**
+the full historical baseline or authenticated host/render evidence. Historical fixture
+provenance and the full gate remain unverified under the fictional/nonfunctional-only
+restriction; tests and the full-suite count floor are retained, not disabled.
+
+Plugin source declares version **0.2.0**; no tag, publication or installer pin is implied.
+The terminal gate declaration remains unchanged because core pins its exact argv.
+Non-routed trusted-host production and routed run-specific paths still require the
+coordinated core contract update; a local authored-metrics fallback is not allowed.
 
 ## Limits
 

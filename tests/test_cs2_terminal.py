@@ -1,5 +1,8 @@
 """Synthetic measurement regressions, NOT authenticated expert or renderer evidence."""
 import json
+import os
+import shlex
+import subprocess
 from pathlib import Path
 import struct
 import sys
@@ -127,6 +130,28 @@ class TerminalMeasurements(unittest.TestCase):
         self.put("scene.json", result["scene"])
         with redirect_stdout(StringIO()):
             self.assertEqual(review_main(args), 2)
+
+    def test_literal_declared_gate_rejects_stale_synthetic_evidence(self):
+        # This executes the declaration, but does not authenticate a base host.
+        plugin = Path(__file__).resolve().parents[1]
+        result = reproduce_terminal(self.root, inputs=self.inputs)
+        output = self.root / ".img2/cs2-terminal"
+        output.mkdir(parents=True)
+        self.put(".img2/cs2-terminal/inputs.json", self.inputs)
+        self.put(".img2/cs2-terminal/scene.json", result["scene"])
+        gate = json.loads((plugin / "gates.json").read_text())[0]
+        command = shlex.split(gate["command"].format(plugin_dir=plugin))
+        home = self.root / "home"
+        home.mkdir()
+        env = dict(os.environ, HOME=str(home), PYTHONDONTWRITEBYTECODE="1")
+        valid = subprocess.run(command, cwd=self.root, env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(valid.returncode, 0, valid.stderr + valid.stdout)
+        self.assertEqual(json.loads(valid.stdout)["status"], "pass")
+        (self.root / "sources.json").write_bytes(serialize_json({}))
+        stale = subprocess.run(command, cwd=self.root, env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(stale.returncode, 2)
+        self.assertEqual(json.loads(stale.stdout)["status"], "error")
+        self.assertIn("input-digest-mismatch", stale.stderr)
 
     def test_host_refusal_cannot_publish_a_terminal_handoff(self):
         class RefusingHost:

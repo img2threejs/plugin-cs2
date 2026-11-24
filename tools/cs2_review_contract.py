@@ -53,3 +53,11 @@ TERMINAL_THRESHOLDS = {
     "paintedRegion": 0.8,
     "maxOrbitCollapseRatio": 0.15,
 }
+
+
+def validate_terminal_thresholds(thresholds: Any) -> None:
+    # Equality also rejects NaN/infinity; bool must not compare as an integer.
+    if (not isinstance(thresholds, dict) or thresholds.keys() != TERMINAL_THRESHOLDS.keys()
+            or any(type(thresholds[key]) not in (int, float) or thresholds[key] != expected
+                   for key, expected in TERMINAL_THRESHOLDS.items())):
+        raise ValueError("scene thresholds must exactly match the frozen terminal policy")

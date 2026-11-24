@@ -22,6 +22,25 @@ These thresholds are program-owned policy, not caller-supplied prose. There is n
 every threshold is about the surface and the silhouette, and applies to any CS2 item whether or
 not this plugin ships geometry for its family.
 
+Scene thresholds must equal `TERMINAL_THRESHOLDS` exactly, including keys and numeric
+types (booleans are refused); non-finite values are refused. This applies to both
+scene-file loading and direct evaluator calls, including decision-adapter recomputation.
+Deferral semantics do not change: only genuinely missing approved metrics can defer,
+never geometry failures or present failing metrics.
+
+Before each per-pass evaluation, `domain.json` invokes:
+
+```sh
+python3 PLUGIN/tools/cs2_review.py --prepare-scene \
+  --manifest cs2-intake.json --out cs2-review-scene.json
+```
+
+This validates the admitted manifest and its legacy `reviewScene` policy, then copies
+its current camera/transform/environment into the evaluator schema with frozen review
+thresholds. It does not reuse a previous run's scene or the historical fixture. The
+result is per-pass policy, not authenticated capture evidence or terminal approval.
+
+
 ## Two modes, one tool
 
 - **Terminal (`--terminal-inputs`)** — the `plugin-gates` door (`gates.json`).
@@ -45,6 +64,11 @@ Threshold calibration is not claimed. Synthetic tests and matching digests are
 neither an independent expert corpus nor authenticated evidence. Real source
 observations and independently approved annotations are required by the terminal
 producer; see README's production terminal handoff contract.
+
+The fixed terminal gate argv remains pinned by core. Non-routed trusted-host evidence
+production and routed run-specific gate paths need a coordinated core change; this
+plugin does not bypass missing terminal inputs with per-pass authored metrics.
+
 
 Attach a report to the normal review record with (base command, run from the workspace):
 

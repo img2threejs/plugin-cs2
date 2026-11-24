@@ -42,11 +42,17 @@ those is a change to the base skill or the contract, not to this repo.
 ## Development
 
 ```bash
-python3 -m pytest tests -q                              # 36 passed
+python3 scripts/test_synthetic.py                       # synthetic subset only; isolated HOME, no historical fixtures
 python3 -m unittest discover -s tests -p 'test_*.py'    # same suite, stdlib runner
 img2 add --link .                                       # install this checkout, no clone
 img2 doctor                                             # must be zero findings
 ```
+
+The full unittest gate is retained, not replaced by the synthetic subset. Do not run
+historical/rights-unverified fixtures under a fictional-only authorization. Reports
+must distinguish selected tests from skips and retain the unresolved full-gate limitation.
+Release-version changes update only the oracle test's expected `pluginVersion` stamp;
+all other frozen report bytes and assertions remain checked when that gate is authorized.
 
 - **Standard library only on the required path.** The four optional exactness tools may shell out to a
   binary you supply; nothing on the required path may.

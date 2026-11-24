@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from cs2_review_contract import TERMINAL_THRESHOLDS, validate_terminal_thresholds
+
 REQUIRED_SCENE_KEYS = {
     "version",
     "fixtureId",
@@ -23,16 +25,6 @@ REQUIRED_SCENE_KEYS = {
     "rendererVersion",
     "calibration",
     "thresholds",
-}
-REQUIRED_THRESHOLDS = {
-    "silhouetteIoU",
-    "aspectRatioDelta",
-    "scaleDelta",
-    "projectionCoverage",
-    "finishMaterialResponse",
-    "identityDetail",
-    "paintedRegion",
-    "maxOrbitCollapseRatio",
 }
 
 # The closed deferrable set: the gates whose metrics are produced by the projection bake and so
@@ -66,12 +58,42 @@ def load_review_scene(path: Path) -> dict[str, Any]:
     missing = REQUIRED_SCENE_KEYS - payload.keys()
     if missing:
         raise ValueError("review scene is missing: " + ", ".join(sorted(missing)))
-    thresholds = payload.get("thresholds")
-    if not isinstance(thresholds, dict) or not REQUIRED_THRESHOLDS.issubset(thresholds):
-        raise ValueError("review scene thresholds are incomplete")
+    validate_terminal_thresholds(payload.get("thresholds"))
     if payload.get("version") != 1:
         raise ValueError("unsupported review scene version")
     return payload
+
+
+def _pass_scene(manifest: dict[str, Any]) -> dict[str, Any]:
+    from cs2_manifest import validate_manifest
+    from cs2_review_contract import validate_review_scene
+
+    if not validate_manifest(manifest) or manifest.get("state") != "proceed":
+        raise ValueError("reviewScene requires a valid, admitted CS2 manifest")
+    source = manifest.get("reviewScene")
+    if not isinstance(source, dict) or not isinstance(source.get("orbitViewpoints"), list):
+        raise ValueError("manifest reviewScene is missing or invalid")
+    errors = validate_review_scene(source)
+    if errors:
+        raise ValueError("manifest reviewScene: " + "; ".join(errors))
+    if (any(not isinstance(source.get(key), dict) or not source[key]
+            for key in ("camera", "objectTransform"))
+            or not isinstance(source.get("resolution"), list) or len(source["resolution"]) != 2):
+        raise ValueError("manifest reviewScene camera, transform or resolution is invalid")
+    views = manifest.get("sourceViews")
+    if not views or not isinstance(views[0], dict) or not views[0].get("path"):
+        raise ValueError("manifest reviewScene requires a declared reference")
+    return {
+        "version": 1, "fixtureId": "manifest-per-pass-v1", "reference": views[0]["path"],
+        "identity": {"family": manifest.get("itemFamily"), "subtype": manifest.get("subtype")},
+        "camera": source["camera"], "transform": source["objectTransform"],
+        "environment": {"hash": source["environmentHash"], "exposure": source["exposure"],
+                        "toneMapping": source["toneMapping"]},
+        "resolution": {"width": source["resolution"][0], "height": source["resolution"][1]},
+        "background": source["background"], "rendererVersion": source["rendererVersion"],
+        "calibration": {"status": "manifest-policy-only-not-authenticated-renderer-evidence"},
+        "thresholds": dict(TERMINAL_THRESHOLDS),
+    }
 
 
 def _number(value: Any) -> bool:
@@ -171,6 +193,7 @@ def evaluate_knife_review(
     *,
     allow_deferrals: bool = False,
 ) -> dict[str, Any]:
+    validate_terminal_thresholds(review_scene.get("thresholds"))
     thresholds = review_scene["thresholds"]
     deferrals = _load_deferrals(inputs)
     failed: list[str] = []
@@ -363,6 +386,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--metrics", type=Path, help="render/review metrics JSON (per-pass evaluation)")
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
     parser.add_argument("--terminal-inputs", help="recompute terminal metrics from pinned workspace inputs")
+    parser.add_argument("--prepare-scene", action="store_true",
+                        help="produce per-pass scene policy from the current manifest; grants no terminal authority")
     parser.add_argument(
         "--scene",
         type=Path,
@@ -383,6 +408,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.prepare_scene:
+            if args.manifest is None or args.metrics or args.terminal_inputs or args.allow_deferrals:
+                raise ValueError("--prepare-scene requires only --manifest and --out")
+            scene = _pass_scene(_load_object(args.manifest, "manifest"))
+            _write_json_atomic(args.out, scene)
+            print(json.dumps({"kind": "img2.cs2-pass-scene", "version": 1,
+                              "scene": str(args.out), "terminalAuthority": False}))
+            return 0
         if args.terminal_inputs:
             if args.allow_deferrals or args.manifest or args.metrics:
                 raise ValueError("terminal inputs cannot be combined with deferrals or authored metrics")
