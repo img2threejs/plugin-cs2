@@ -6,9 +6,11 @@ and two orbit results. It emits a machine-readable report with family, route, ex
 scene metadata, per-region confidence, approximation notes, failed gates, and a provenance block
 (`mode`, `passId`, `pluginVersion`, `deferredGates`, `deferralCount`, `spuriousDeferrals`).
 
-The production terminal gate replays `.img2/cs2-terminal/inputs.json` and checks
-`.img2/cs2-terminal/scene.json` against the actual pinned capture configs. The
-golden `tests/fixtures/knife_review_scene.json` remains a test oracle, never the
+The production terminal gate resolves an immutable per-run request and compares its
+bound scene with the actual pinned capture configs. The global request is discovery
+only; core must use its authenticated context's exact request. See
+[terminal request ABI v1](terminal-request-v1.md) for schema, output and envelope binding.
+The golden `tests/fixtures/knife_review_scene.json` remains a test oracle, never the
 production camera. Frozen terminal thresholds live in `TERMINAL_THRESHOLDS`:
 
 - silhouette IoU: at least `0.85`
@@ -43,11 +45,12 @@ result is per-pass policy, not authenticated capture evidence or terminal approv
 
 ## Two modes, one tool
 
-- **Terminal (`--terminal-inputs`)** — the `plugin-gates` door (`gates.json`).
-  Recomputes all metrics and current scene from pinned workspace evidence; authored
-  metrics and deferrals are refused. The envelope binds the current base artifact.
-  Replay proves integrity only: the base must authenticate capture production,
-  source/classifier provenance and same-artifact semantic quality review.
+- **Terminal (`--terminal-request`)** — the `plugin-gates` door (`gates.json`).
+  Recomputes metrics and current scene from SHA-bound same-run evidence; authored
+  metrics, caller-selected output/scene and deferrals are refused. The plugin alone
+  publishes deterministic same-run `gate-review.json`, retaining old attempts.
+  Envelope artifact/request/inputs/scene/report bindings and explicit replay-only scope
+  do not authenticate capture, source/classifier provenance or semantic quality review.
 - **Strict metric evaluation (default)** — the local evaluator also refuses null
   metrics, any deferral, and empty painted-region/critical-feature lists.
 - **Per-pass (`--allow-deferrals`)** — the checklist row (`domain.json`). The metrics file may
@@ -65,9 +68,10 @@ neither an independent expert corpus nor authenticated evidence. Real source
 observations and independently approved annotations are required by the terminal
 producer; see README's production terminal handoff contract.
 
-The fixed terminal gate argv remains pinned by core. Non-routed trusted-host evidence
-production and routed run-specific gate paths need a coordinated core change; this
-plugin does not bypass missing terminal inputs with per-pass authored metrics.
+The exact fixed-selector gate row must be paired with the new reviewed core pin.
+Core alone owns context/run selection and trusted host evidence, and must stop prewriting
+the plugin-owned `gate-review.json` at cutover. Non-routed host evidence remains
+non-authorizing; plugin-gates PASS cannot replace standalone/routed terminal acceptance.
 
 
 Attach a report to the normal review record with (base command, run from the workspace):

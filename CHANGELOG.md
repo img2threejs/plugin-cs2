@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Paired fixed-selector terminal request ABI v1: canonical global discovery or immutable
+  run descriptor, strict same-run SHA bindings, deterministic plugin-only no-clobber
+  report publication and full replay-only verdict evidence. No standalone authority.
+
 - Per-pass scene production from the current admitted manifest before the literal
   domain review command, with useful refusal for absent/invalid scene policy.
 - Python 3.10/3.12 synthetic-subset CI with an isolated HOME and source snapshot that
@@ -33,15 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Plugin version is now 0.2.0 for the routed/terminal behavior; no release tag is created.
-  Historical byte-oracle tests adjust only the expected producer-version stamp to the
-  declared release; all other frozen bytes/assertions and original payloads are retained.
+- Preparatory routed/terminal fixes declared 0.2.0; the paired request ABI now declares
+  0.3.0. No release tag is created. Historical byte-oracle tests adjust only the expected
+  producer-version stamp; all other frozen bytes/assertions and original payloads remain.
 - Per-pass scene loading and direct evaluation now enforce exact program-owned terminal
   thresholds, rejecting altered/missing/extra/non-numeric/non-finite policy rather than
   accepting caller-controlled quality floors. Legitimate missing-only deferrals remain.
 - Full historical fixture gates remain unverified under fictional-only authorization.
-  Core's exact terminal gate argv is unchanged; S2 non-routed trusted-host production
-  and run-specific routed gate paths remain a cross-repository integration dependency.
+  The exact terminal gate row changes only for the coordinated request ABI. Core pin,
+  non-routed trusted host production and authenticated context/run verification remain
+  paired integration requirements; old/new versions fail closed.
 
 - Manifest intake now enforces the documented independent classification floor (0.82), timeout,
   evidence/provider requirements and explicit non-CS2 veto. Routed resume rechecks classification.

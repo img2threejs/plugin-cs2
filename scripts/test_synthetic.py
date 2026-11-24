@@ -17,6 +17,7 @@ TARGETS = [
     "test_cs2_measure",
     "test_cs2_terminal",
     "test_cs2_pass_workflow",
+    "test_cs2_gate_request",
     "test_cs2_review_deferrals.DeferredMapShapeIsHardValidated",
     "test_cs2_review_deferrals.DeclarationDriftGuard",
     "test_cs2_review_deferrals.EnvelopeAndCli.test_help_still_exits_zero",

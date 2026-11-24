@@ -115,19 +115,28 @@ class TerminalMeasurements(unittest.TestCase):
             reproduce_terminal(self.root, inputs=self.inputs)
         self.assertEqual(caught.exception.reason_code, "material-response-unmeasurable")
 
+    def gate_request(self, result):
+        run = ".img2/cs2-terminal/run-" + "a" * 32
+        (self.root / run).mkdir(parents=True)
+        inputs = self.put(run + "/inputs.json", self.inputs)
+        scene = self.put(run + "/scene.json", result["scene"])
+        request = {"kind": "img2.cs2-terminal-request", "version": 1, "inputs": inputs, "scene": scene}
+        path = run + "/gate-request.json"
+        self.put(path, request)
+        return path, request
+
     def test_gate_replays_actual_workspace_and_rejects_changed_scene(self):
         result = reproduce_terminal(self.root, inputs=self.inputs)
-        self.put("terminal-inputs.json", self.inputs)
-        self.put("scene.json", result["scene"])
-        args = ["--workspace", str(self.root), "--terminal-inputs", "terminal-inputs.json",
-                "--scene", "scene.json", "--out", str(self.root / "report.json")]
+        request_path, request = self.gate_request(result)
+        args = ["--workspace", str(self.root), "--terminal-request", request_path]
         output = StringIO()
         with redirect_stdout(output):
             code = review_main(args)
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(output.getvalue())["evidence"]["artifact"], self.inputs["artifact"])
         result["scene"]["thresholds"]["finishMaterialResponse"] = 0
-        self.put("scene.json", result["scene"])
+        request["scene"] = self.put(request["scene"]["path"], result["scene"])
+        self.put(request_path, request)
         with redirect_stdout(StringIO()):
             self.assertEqual(review_main(args), 2)
 
@@ -135,10 +144,8 @@ class TerminalMeasurements(unittest.TestCase):
         # This executes the declaration, but does not authenticate a base host.
         plugin = Path(__file__).resolve().parents[1]
         result = reproduce_terminal(self.root, inputs=self.inputs)
-        output = self.root / ".img2/cs2-terminal"
-        output.mkdir(parents=True)
-        self.put(".img2/cs2-terminal/inputs.json", self.inputs)
-        self.put(".img2/cs2-terminal/scene.json", result["scene"])
+        _, request = self.gate_request(result)
+        self.put(".img2/cs2-terminal/gate-request.json", request)
         gate = json.loads((plugin / "gates.json").read_text())[0]
         command = shlex.split(gate["command"].format(plugin_dir=plugin))
         home = self.root / "home"

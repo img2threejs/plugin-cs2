@@ -385,16 +385,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path, help="validated cs2-intake.json (per-pass evaluation)")
     parser.add_argument("--metrics", type=Path, help="render/review metrics JSON (per-pass evaluation)")
     parser.add_argument("--workspace", type=Path, default=Path.cwd())
-    parser.add_argument("--terminal-inputs", help="recompute terminal metrics from pinned workspace inputs")
+    parser.add_argument("--terminal-request", help="versioned immutable run descriptor, or fixed discovery locator")
     parser.add_argument("--prepare-scene", action="store_true",
                         help="produce per-pass scene policy from the current manifest; grants no terminal authority")
     parser.add_argument(
         "--scene",
         type=Path,
-        default=Path("cs2-review-scene.json"),
+        default=None,
         help="current workspace review scene; terminal mode checks exact reproducibility",
     )
-    parser.add_argument("--out", type=Path, required=True, help="output review report JSON")
+    parser.add_argument("--out", type=Path, help="required per-pass output; forbidden in terminal request mode")
     # Strict is the DEFAULT: with no flag, deferral requests are refused and null metrics fail.
     # Only domain.json's per-pass row carries this flag; gates.json stays flagless, so a
     # copy-pasted or hand-edited terminal row fails closed, never open (design D1).
@@ -408,33 +408,30 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.terminal_request:
+            if args.manifest or args.metrics or args.prepare_scene or args.allow_deferrals or args.scene or args.out:
+                raise ValueError("terminal request cannot be combined with authored metrics, scene, output or deferrals")
+            from cs2_gate_request import replay_request
+            report, evidence = replay_request(args.workspace, args.terminal_request)
+            passed = report["verdict"] == "pass"
+            _print_envelope("pass" if passed else "fail", list(report["failedGates"]), evidence)
+            return 0 if passed else 1
+        if args.out is None:
+            raise ValueError("--out is required outside terminal request mode")
         if args.prepare_scene:
-            if args.manifest is None or args.metrics or args.terminal_inputs or args.allow_deferrals:
+            if args.manifest is None or args.metrics or args.allow_deferrals:
                 raise ValueError("--prepare-scene requires only --manifest and --out")
             scene = _pass_scene(_load_object(args.manifest, "manifest"))
             _write_json_atomic(args.out, scene)
             print(json.dumps({"kind": "img2.cs2-pass-scene", "version": 1,
                               "scene": str(args.out), "terminalAuthority": False}))
             return 0
-        if args.terminal_inputs:
-            if args.allow_deferrals or args.manifest or args.metrics:
-                raise ValueError("terminal inputs cannot be combined with deferrals or authored metrics")
-            from cs2_terminal import _json, reproduce_terminal
-            from cs2_evidence import read_workspace_file
-            raw = read_workspace_file(args.workspace, args.terminal_inputs, role="terminal-inputs",
-                                      missing_code="terminal-input-missing")
-            result = reproduce_terminal(args.workspace, inputs=_json(raw, "terminal-inputs"))
-            scene_path = args.scene if args.scene.is_absolute() else args.workspace / args.scene
-            if load_review_scene(scene_path) != result["scene"]:
-                raise ValueError("scene-not-reproducible")
-            report = result["report"]
-        else:
-            if args.manifest is None or args.metrics is None:
-                raise ValueError("--manifest and --metrics are required outside terminal replay")
-            manifest = _load_object(args.manifest, "manifest")
-            metrics = _load_object(args.metrics, "metrics")
-            scene = load_review_scene(args.scene.expanduser())
-            report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
+        if args.manifest is None or args.metrics is None:
+            raise ValueError("--manifest and --metrics are required outside terminal replay")
+        manifest = _load_object(args.manifest, "manifest")
+        metrics = _load_object(args.metrics, "metrics")
+        scene = load_review_scene((args.scene or Path("cs2-review-scene.json")).expanduser())
+        report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
         _write_json_atomic(args.out, report)
         passed = report["verdict"] == "pass"
         # A deferred pass must be visible in the aggregate, not only in the report file: reasons
@@ -443,12 +440,10 @@ def main(argv: list[str] | None = None) -> int:
             reasons = [f"deferred: {token}" for token in report["deferredGates"]]
         else:
             reasons = [str(item) for item in report.get("failedGates", [])] or ["review verdict: " + str(report["verdict"])]
-        artifact_evidence = {"artifact": result["inputs"]["artifact"]} if args.terminal_inputs else {}
         _print_envelope(
             "pass" if passed else "fail",
             reasons,
             {
-                **artifact_evidence,
                 "report": str(args.out),
                 "verdict": report["verdict"],
                 "action": report.get("action"),

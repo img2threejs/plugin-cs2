@@ -198,16 +198,22 @@ Consult the shared controller against that saved context outside the parent
 transaction, then call `finalize_terminal(workspace, inputs=persisted_inputs,
 host=host, output_dir=...)`. Finalization reauthenticates and replays existing
 evidence without recapturing or changing the reviewed subject.
-The blocking gate replays these workspace inputs and scene instead of a bundled
-knife fixture. Independent pinned-input replay:
+The blocking gate uses the versioned [terminal request ABI](docs/cs2/terminal-request-v1.md),
+not fixed-root input/scene aliases or a historical fixture. Core publishes immutable
+`run-<32 lowercase hex>/gate-request.json` with same-run SHA-bound inputs/scene,
+then binds that request in its authenticated context. Its global discovery copy at
+`.img2/cs2-terminal/gate-request.json` grants no authority.
 
 ```sh
-python3 PLUGIN/tools/cs2_terminal.py --workspace CHILD \
-  --inputs .img2/cs2-terminal/inputs.json --inputs-sha256 INPUTS_SHA256
 python3 PLUGIN/tools/cs2_review.py --workspace CHILD \
-  --terminal-inputs .img2/cs2-terminal/inputs.json \
-  --scene .img2/cs2-terminal/scene.json --out CHILD/cs2-review.json
+  --terminal-request .img2/cs2-terminal/run-RUN_HEX/gate-request.json
 ```
+
+Only the canonical global locator or a canonical run descriptor is accepted. The plugin
+alone publishes deterministic same-run `gate-review.json`; core must not prewrite it.
+Different existing report bytes refuse, while identical replay does not overwrite.
+The old `--terminal-inputs` review CLI is removed. The low-level replay CLI remains
+separate and cannot authorize a terminal result.
 
 Replay exit zero means measured gates passed, not authenticated terminal approval.
 Real smoke prerequisites are a valid self-contained delivered GLB, approved host
@@ -296,10 +302,11 @@ the full historical baseline or authenticated host/render evidence. Historical f
 provenance and the full gate remain unverified under the fictional/nonfunctional-only
 restriction; tests and the full-suite count floor are retained, not disabled.
 
-Plugin source declares version **0.2.0**; no tag, publication or installer pin is implied.
-The terminal gate declaration remains unchanged because core pins its exact argv.
-Non-routed trusted-host production and routed run-specific paths still require the
-coordinated core contract update; a local authored-metrics fallback is not allowed.
+Plugin source declares version **0.3.0** for the paired fixed-selector gate ABI; no tag,
+publication or installer pin is implied. Old/new core-plugin pairs fail closed until
+the exact new gate row, provider commit and full envelope bindings are reviewed together.
+Non-routed production is evidence-only, never standalone terminal acceptance; an
+authored-metrics fallback is not allowed.
 
 ## Limits
 

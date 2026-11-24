@@ -1,7 +1,7 @@
 [
   {
     "id": "cs2-review",
-    "command": "python3 {plugin_dir}/tools/cs2_review.py --terminal-inputs .img2/cs2-terminal/inputs.json --scene .img2/cs2-terminal/scene.json --out cs2-review.json",
+    "command": "python3 {plugin_dir}/tools/cs2_review.py --terminal-request .img2/cs2-terminal/gate-request.json",
     "blocking": true,
     "after": []
   }
