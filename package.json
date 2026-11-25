@@ -1,0 +1,28 @@
+{
+  "name": "@img2threejs/plugin-cs2",
+  "version": "0.1.2",
+  "description": "Counter-Strike 2 weapon and glove skin reconstruction: intake contract, authoritative classification, finish/material recipes, and a blocking review gate.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/img2threejs/plugin-cs2.git"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SKILL.md",
+    "docs",
+    "domain.json",
+    "gates.json",
+    "grimoire",
+    "plugin.json",
+    "skills",
+    "spec_search_profile.json",
+    "steps.json",
+    "tools"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
