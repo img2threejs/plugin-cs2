@@ -244,9 +244,20 @@ class Cs2DecisionAdapterTests(unittest.TestCase):
         self.assertEqual(self.snapshot("repair", unlocked=True, plan_input=supplied)["candidates"], [])
 
     def test_matching_report_cannot_launder_lowered_gate_thresholds(self):
+        self.metrics["silhouetteIoU"] = 0.1
+        self.json_file("metrics", "metrics.json", self.metrics)
+        self.refresh_gate()
+        report = json.loads((self.root / "gate.json").read_text())
+        self.assertEqual(report["verdict"], "reject")
+        self.assertEqual(report["failedGates"], ["silhouetteIoU"])
         self.scene["thresholds"]["silhouetteIoU"] = 0.01
         self.json_file("review-scene", "scene.json", self.scene)
-        self.refresh_gate()
+        with self.assertRaisesRegex(ValueError, "frozen terminal policy"):
+            self.refresh_gate()
+        # An attacker can still hand-edit a matching passing report for the
+        # lowered floor, with fresh hashes and the same below-policy metrics.
+        report.update({"verdict": "pass", "action": "continue", "failedGates": []})
+        self.json_file("gate", "gate.json", report)
         with self.assertRaisesRegex(ValueError, "frozen CS2 gate thresholds"):
             self.snapshot()
 

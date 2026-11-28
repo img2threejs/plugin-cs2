@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   probability, invented semantic score or pixel-equality fraud heuristic is used.
   Synthetic regression fixtures explicitly carry no renderer/expert authority.
 
+### Fixed
+
+- Lowered-threshold decision-adapter regression coverage now asserts the frozen producer
+  refusal and independently rejects an attacker-edited matching passing report.
+- Strict/permissive oracle comparison uses the same declared-version normalization in
+  both modes; every other historical payload byte and the original fixtures remain frozen.
+
 ### Changed
 
 - Preparatory routed/terminal fixes declared 0.2.0; the paired request ABI now declares

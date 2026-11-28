@@ -104,7 +104,7 @@ class Cs2OracleReplay(unittest.TestCase):
             "permissive-mode review output drifted from the recorded oracle. If the change was "
             "intentional, re-record the fixture in the same commit and say so.",
         )
-        strict = json.loads((ORACLE / "cs2-review.json").read_text())
+        strict = json.loads(expected_report_bytes("cs2-review.json"))
         permissive = json.loads(expected)
         diff = {key for key in set(strict) | set(permissive) if strict.get(key) != permissive.get(key)}
         self.assertEqual(diff, {"mode"}, "clean inputs must differ between modes only in the mode stamp")
