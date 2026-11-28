@@ -6,10 +6,12 @@ and two orbit results. It emits a machine-readable report with family, route, ex
 scene metadata, per-region confidence, approximation notes, failed gates, and a provenance block
 (`mode`, `passId`, `pluginVersion`, `deferredGates`, `deferralCount`, `spuriousDeferrals`).
 
-The versioned fixture is `tests/fixtures/knife_review_scene.json` (this plugin's copy — nothing
-lives under `forge/` anymore). It records the camera, object transform, environment hash,
-exposure, tone mapping, resolution, background, renderer version, visible regions, critical
-features, and frozen initial thresholds:
+The production terminal gate resolves an immutable per-run request and compares its
+bound scene with the actual pinned capture configs. The global request is discovery
+only; core must use its authenticated context's exact request. See
+[terminal request ABI v1](terminal-request-v1.md) for schema, output and envelope binding.
+The golden `tests/fixtures/knife_review_scene.json` remains a test oracle, never the
+production camera. Frozen terminal thresholds live in `TERMINAL_THRESHOLDS`:
 
 - silhouette IoU: at least `0.85`
 - aspect-ratio delta: at most `0.05`
@@ -18,16 +20,39 @@ features, and frozen initial thresholds:
 - finish/material response and identity detail: at least `0.80`
 - painted-region score: at least `0.80`
 
-These thresholds are fixture data, not caller-supplied prose. There is no family or adapter gate:
+These thresholds are program-owned policy, not caller-supplied prose. There is no family or adapter gate:
 every threshold is about the surface and the silhouette, and applies to any CS2 item whether or
 not this plugin ships geometry for its family.
 
+Scene thresholds must equal `TERMINAL_THRESHOLDS` exactly, including keys and numeric
+types (booleans are refused); non-finite values are refused. This applies to both
+scene-file loading and direct evaluator calls, including decision-adapter recomputation.
+Deferral semantics do not change: only genuinely missing approved metrics can defer,
+never geometry failures or present failing metrics.
+
+Before each per-pass evaluation, `domain.json` invokes:
+
+```sh
+python3 PLUGIN/tools/cs2_review.py --prepare-scene \
+  --manifest cs2-intake.json --out cs2-review-scene.json
+```
+
+This validates the admitted manifest and its legacy `reviewScene` policy, then copies
+its current camera/transform/environment into the evaluator schema with frozen review
+thresholds. It does not reuse a previous run's scene or the historical fixture. The
+result is per-pass policy, not authenticated capture evidence or terminal approval.
+
+
 ## Two modes, one tool
 
-- **Strict (default, no flag)** — the terminal `plugin-gates` door (`gates.json`). A null metric
-  fails its gate; every `deferred` entry is refused (`deferral-refused:<token>`); and
-  `paintedRegions` / `criticalFeatures` must be non-empty arrays (`painted-regions-empty`,
-  `critical-features-empty`).
+- **Terminal (`--terminal-request`)** — the `plugin-gates` door (`gates.json`).
+  Recomputes metrics and current scene from SHA-bound same-run evidence; authored
+  metrics, caller-selected output/scene and deferrals are refused. The plugin alone
+  publishes deterministic same-run `gate-review.json`, retaining old attempts.
+  Envelope artifact/request/inputs/scene/report bindings and explicit replay-only scope
+  do not authenticate capture, source/classifier provenance or semantic quality review.
+- **Strict metric evaluation (default)** — the local evaluator also refuses null
+  metrics, any deferral, and empty painted-region/critical-feature lists.
 - **Per-pass (`--allow-deferrals`)** — the checklist row (`domain.json`). The metrics file may
   defer, by explicit declaration only, the three gates whose evidence the projection bake
   produces: `finishMaterialResponse`, `identityDetail`, `projection-coverage`. The full metrics
@@ -38,9 +63,16 @@ A deferred pass is a pass with named deferrals: the report lists them in `deferr
 stdout `img2.gate-verdict` envelope names each one in `reasons` (`deferred: <token>`), so the
 deferral is visible in the `img2.gate-run` aggregate, not only in a file on disk.
 
-The fixture freezes the initial targets but records calibration as pending until the browser
-runtime supplies labeled positive and negative renders. `calibrate_eye.py` must be run on both
-classes before these targets are treated as empirically calibrated.
+Threshold calibration is not claimed. Synthetic tests and matching digests are
+neither an independent expert corpus nor authenticated evidence. Real source
+observations and independently approved annotations are required by the terminal
+producer; see README's production terminal handoff contract.
+
+The exact fixed-selector gate row must be paired with the new reviewed core pin.
+Core alone owns context/run selection and trusted host evidence, and must stop prewriting
+the plugin-owned `gate-review.json` at cutover. Non-routed host evidence remains
+non-authorizing; plugin-gates PASS cannot replace standalone/routed terminal acceptance.
+
 
 Attach a report to the normal review record with (base command, run from the workspace):
 
@@ -48,15 +80,15 @@ Attach a report to the normal review record with (base command, run from the wor
 python3 forge/stage4_review/append_review.py object-sculpt-spec.json \
   --pass-id material-pass --fidelity 0.9 --action continue --summary "cs2 review passed" \
   --domain-review-json cs2-review.json \
-  --review-scene-json <plugin>/tests/fixtures/knife_review_scene.json --in-place
+  --review-scene-json .img2/cs2-terminal/scene.json --in-place
 ```
 
 `append_review.py` rejects `action=continue` when the attached report is not a passing review or
 when its scene fixture does not match. The report retains single-view limitations: hidden-region
 confidence and approximation notes are required evidence, not an exactness claim.
 
-The fixture metadata labels the image as `user-supplied-review-required`. Do not mark it
-rights-safe or commit extracted Valve pixels until provenance is verified. Local extraction
-remains outside the repository under the existing `cs2_textures/` IP boundary. Browser capture
-remains the responsibility of `runtime/cs2-preview`; the Python review gate accepts its metrics
-and screenshots but does not pretend to render them.
+Do not mark source pixels rights-safe or commit extracted Valve pixels until
+provenance is verified. Local extraction remains outside the repository under the
+existing `cs2_textures/` IP boundary. Production capture is delegated through the
+explicit trusted host to the base's fixed delivered-GLB renderer; the plugin never
+authenticates capture from a caller-hashed renderer report.

@@ -36,17 +36,23 @@ those is a change to the base skill or the contract, not to this repo.
 - **The subtype is authoritative or it is unknown.** A Talon has no crossguard; a Karambit does.
   Reporting a part as not-applicable is correct; inventing one is not, and a contribution that makes
   the run guess a subtype will be rejected however good the geometry is.
-- **`detect_cs2.py` is triage, never routing.** Routing is by declared domain. Do not wire detection
-  into a decision path.
+- **`detect_cs2.py` is triage, never routing.** Entry is by declared profile or a base-validated
+  recorded route selection. Neither route probability nor detection establishes CS2 identity.
 
 ## Development
 
 ```bash
-python3 -m pytest tests -q                              # 36 passed
+python3 scripts/test_synthetic.py                       # synthetic subset only; isolated HOME, no historical fixtures
 python3 -m unittest discover -s tests -p 'test_*.py'    # same suite, stdlib runner
 img2 add --link .                                       # install this checkout, no clone
 img2 doctor                                             # must be zero findings
 ```
+
+The full unittest gate is retained, not replaced by the synthetic subset. Do not run
+historical/rights-unverified fixtures under a fictional-only authorization. Reports
+must distinguish selected tests from skips and retain the unresolved full-gate limitation.
+Release-version changes update only the oracle test's expected `pluginVersion` stamp;
+all other frozen report bytes and assertions remain checked when that gate is authorized.
 
 - **Standard library only on the required path.** The four optional exactness tools may shell out to a
   binary you supply; nothing on the required path may.

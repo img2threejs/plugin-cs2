@@ -40,3 +40,24 @@ def validate_review_scene(scene: dict[str, Any]) -> list[str]:
     if len(scene.get("orbitViewpoints", [])) != 2:
         errors.append("exactly two orbit viewpoints are required")
     return errors
+
+# Terminal review policy, formerly embedded only in the golden test scene.
+# Keep the legacy projection contract above separate: it uses different metrics.
+TERMINAL_THRESHOLDS = {
+    "silhouetteIoU": 0.85,
+    "aspectRatioDelta": 0.05,
+    "scaleDelta": 0.08,
+    "projectionCoverage": 0.85,
+    "finishMaterialResponse": 0.8,
+    "identityDetail": 0.8,
+    "paintedRegion": 0.8,
+    "maxOrbitCollapseRatio": 0.15,
+}
+
+
+def validate_terminal_thresholds(thresholds: Any) -> None:
+    # Equality also rejects NaN/infinity; bool must not compare as an integer.
+    if (not isinstance(thresholds, dict) or thresholds.keys() != TERMINAL_THRESHOLDS.keys()
+            or any(type(thresholds[key]) not in (int, float) or thresholds[key] != expected
+                   for key, expected in TERMINAL_THRESHOLDS.items())):
+        raise ValueError("scene thresholds must exactly match the frozen terminal policy")

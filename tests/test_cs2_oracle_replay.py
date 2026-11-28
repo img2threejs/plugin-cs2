@@ -24,9 +24,20 @@ ORACLE = Path(__file__).resolve().parent / "fixtures" / "oracle-talon"
 CS2_REVIEW = ROOT / "tools" / "cs2_review.py"
 
 
+def expected_report_bytes(name: str) -> bytes:
+    # Preserve every historical payload byte; only the declared producer version
+    # changes with a release. This does not certify the fixture's asset provenance.
+    expected = (ORACLE / name).read_bytes()
+    old = b'"pluginVersion": "0.1.2"'
+    if expected.count(old) != 1:
+        raise AssertionError("historical oracle must contain one frozen producer version")
+    version = json.loads((ROOT / "plugin.json").read_text())["version"]
+    return expected.replace(old, b'"pluginVersion": ' + json.dumps(version).encode())
+
+
 class Cs2OracleReplay(unittest.TestCase):
     def test_replaying_the_completed_run_reproduces_its_review_byte_for_byte(self) -> None:
-        expected = (ORACLE / "cs2-review.json").read_bytes()
+        expected = expected_report_bytes("cs2-review.json")
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "replay.json"
             proc = subprocess.run(
@@ -37,6 +48,8 @@ class Cs2OracleReplay(unittest.TestCase):
                     str(ORACLE / "cs2-intake.json"),
                     "--metrics",
                     str(ORACLE / "cs2-review-inputs.json"),
+                    "--scene",
+                    str(ROOT / "tests" / "fixtures" / "knife_review_scene.json"),
                     "--out",
                     str(out),
                 ],
@@ -68,10 +81,9 @@ class Cs2OracleReplay(unittest.TestCase):
         self.assertEqual(report["mode"], "strict")
 
     def test_replaying_with_allow_deferrals_reproduces_the_permissive_oracle(self) -> None:
-        # The flagless replay above IS the strict door (gates.json's shape). This companion covers
-        # the per-pass shape (domain.json carries --allow-deferrals); on the oracle's complete
-        # inputs the two reports differ ONLY in the mode stamp, which this fixture pins.
-        expected = (ORACLE / "cs2-review.allow-deferrals.json").read_bytes()
+        # Explicit historical scene preserves this per-pass oracle; production
+        # terminal review independently reconstructs its current workspace scene.
+        expected = expected_report_bytes("cs2-review.allow-deferrals.json")
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "replay.json"
             proc = subprocess.run(
@@ -79,6 +91,7 @@ class Cs2OracleReplay(unittest.TestCase):
                     sys.executable, str(CS2_REVIEW),
                     "--manifest", str(ORACLE / "cs2-intake.json"),
                     "--metrics", str(ORACLE / "cs2-review-inputs.json"),
+                    "--scene", str(ROOT / "tests" / "fixtures" / "knife_review_scene.json"),
                     "--out", str(out),
                     "--allow-deferrals",
                 ],
@@ -91,7 +104,7 @@ class Cs2OracleReplay(unittest.TestCase):
             "permissive-mode review output drifted from the recorded oracle. If the change was "
             "intentional, re-record the fixture in the same commit and say so.",
         )
-        strict = json.loads((ORACLE / "cs2-review.json").read_text())
+        strict = json.loads(expected_report_bytes("cs2-review.json"))
         permissive = json.loads(expected)
         diff = {key for key in set(strict) | set(permissive) if strict.get(key) != permissive.get(key)}
         self.assertEqual(diff, {"mode"}, "clean inputs must differ between modes only in the mode stamp")

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "cs2",
-  "version": "0.1.2",
+  "version": "0.3.0",
   "description": "Counter-Strike 2 weapon and glove skin reconstruction: intake contract, authoritative classification, finish/material recipes, and a blocking review gate.",
   "capabilities": [
     {

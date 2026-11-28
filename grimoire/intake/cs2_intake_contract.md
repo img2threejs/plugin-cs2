@@ -21,10 +21,10 @@ a fallback.
 
 For a CS2 request, create and validate `cs2-intake.json` before pre-spec authoring. Run admission
 and probing for every source view, record the heuristic signal as non-authoritative evidence,
-attach the classification record, resolve the supported family, and choose `route` independently
-from `exactnessTier`. Missing classification, insufficient coverage, or a contradictory
-high-confidence class is `request-input`; unsupported families do not continue into spec
-generation.
+attach the classification record, resolve the family, and choose `route` independently
+from `exactnessTier`. Missing classification, confidence below 0.82, a timeout, or a negative
+CS2 classification is `request-input`, even for a selected route. A family without authored geometry
+retains the finish contract and records `geometrySource: agent-inferred`.
 
 ## Layer contract
 
@@ -48,10 +48,10 @@ The canonical hand-off is `cs2-intake.json` (`schemaVersion: 1`). Its state is o
 
 1. Admit and technically probe every view. Reject undecodable, empty, tiny, fragmented, or
    duplicate references before classification.
-2. Record the heuristic CS2 signal only as a routing hint. `detect_cs2.py` is never authoritative
-   identity evidence.
-3. Require a classification record before selecting a family adapter. If classification is absent,
-   timed out, or contradicts a high-confidence objectness result, return `request-input`.
+2. Record the heuristic CS2 signal as triage only. `detect_cs2.py` is never an input to route
+   selection or authoritative identity evidence.
+3. Require an independent classification record before selecting a family adapter. If classification
+   is absent, timed out, below 0.82, or negative for CS2, return `request-input`.
 4. Resolve identity in this order: explicit user metadata, uniquely resolved metadata, then the
    authoritative classification record. Preserve ambiguity rather than guessing.
 5. Select route and exactness independently:
@@ -132,3 +132,86 @@ The report the gate writes back records `mode`, `passId`, `pluginVersion`, `defe
 `deferralCount`, and `spuriousDeferrals`, so a later reader can tell which rules judged which
 pass. Attach the report to the review record via `append_review.py --domain-review-json`; a
 deferred pass is a pass with named deferrals, not a waiver.
+
+## Recorded profile selection and trust boundary
+
+`--profile cs2` remains explicit legacy selection. A base-validated `img2.route-decision` v1 may
+also select `profile:cs2@<resolvedSha>` for one object. The base must first verify its own journal,
+lease, eligibility, current image/inventory/box/context bindings and selected provider resolution.
+This plugin does not import the base controller or authenticate the journal.
+
+The manifest API accepts `route_decision`, `validated_route_sha256`, `object_id`, and `resolved_sha`.
+The equivalent CLI flags are `--route-decision`, `--validated-route-sha256`, `--object-id`,
+and `--resolved-sha`. The digest uses canonical JSON (sorted keys, compact separators, UTF-8,
+no non-finite numbers). **The supplied digest is only an integrity comparison, not authentication**:
+an untrusted caller can forge both a document and its digest. These flags are a trusted base-caller
+interface, not a standalone authorization service. The plugin verifies the completed decision,
+object selection/eligibility, exact provider pin and reference SHA256 against that handoff.
+The reference is the image bound by the decision; a cropped child requires the base to hand off
+its independently validated image binding rather than substituting a crop silently.
+
+The handoff is retained under `extensions.routeSelection`; it never enters `identity` or
+`classification`. Even a matching forged route hash cannot replace classification. Existing
+classification records remain accepted; explicit `isCs2: false`, a non-`cs2` `domain`, or
+`kind: non-cs2|look-alike|unknown` vetoes identity. Explicit user metadata cannot bypass this veto.
+Routed `--resume` rechecks classification and the current handoff instead of trusting a cached
+`proceed`. Routed augmentation and strict review also reject a forged `proceed` lacking classification.
+
+## Offline four-group decision inputs
+
+`tools/cs2_decision_adapter.py` exposes local snapshots; the base alone performs Jev-first
+consultation, consent, shared budgeting, decision persistence and trial application:
+
+```bash
+python3 /path/to/plugin-cs2/tools/cs2_decision_adapter.py \
+  --workspace /path/to/child --group quality-review \
+  --evidence evidence-bindings.json --pass-id material-pass --out cs2-decision-snapshot.json
+```
+
+`--evidence` is a JSON list of shared-controller bindings `{role, path, sha256}`. Paths are
+workspace-relative, regular files, without symlinks or traversal; hashes are supplied from the
+current revision and verified before and after evaluation. Never derive a success claim from the
+existence of these files. `manifest` and `reference` are always required; the manifest reference
+must carry a matching real-byte `sourceViews[].sha256` (old manifests need regeneration).
+Quality-review/repair additionally require `spec`, `source`, `metrics`, `review-scene`, `gate`,
+`camera`, `render`, `view-front`, `view-orbit-a`, and `view-orbit-b`. The base must produce and bind
+the actual matched camera/renders and measurements; this adapter does not render, measure pixels,
+prove camera alignment, or invent missing evidence. It recomputes the strict CS2 report and refuses
+a report inconsistent with the current manifest/metrics/scene or pass. A failed gate stays failed.
+
+Snapshots expose the controller's `bindings`, `candidates`, `observations`, and `requirements`;
+the full `gate` report remains local, not provider projection. The base independently validates
+bindings and strips their paths before provider projection. Routing snapshots do not enumerate or
+resolve providers: the base owns that.
+Strategy and repair accept `plan_input` (CLI: `--plan-input`) only from trusted base code.
+Its exact shape is `{plans, scope, proposalRoles}`. Every plan uses the shared shape
+`{id, passId, components, operations, fieldPaths, materialSources, dependencies, rigHandoff}`.
+`scope` contains the shared `filter_plans` keyword fields: `pass_id`, `pass_unlocked`,
+`components`, `operations`, `field_paths`, `authorized_sources`, `available_dependencies`,
+`rig_required`, and `rig_available`. JSON allowlists are arrays; the API also accepts sets.
+For repair, scope additionally requires `permissions`; mutation requires explicit `write-spec`.
+These values must come from independently checked program-owned scope, never from a provider,
+candidate, manifest or its filename. Supplying JSON does not authenticate authorization.
+
+`proposalRoles` maps plan ids to evidence binding roles containing complete successor spec bytes.
+Every successor is hash-checked with the other inputs. Proposed changes must be non-empty,
+limited to existing named components and exact component-relative `fieldPaths`; component
+membership/order, global spec fields, quality floors, gates and provenance remain frozen.
+Material edits require real bound SHA256s in `materialSources` that are independently present
+in `scope.authorized_sources`; neither source paths nor invented licensing labels grant permission.
+Operations and dependencies must already be supported by the trusted scope. The base still runs
+its authoritative `filter_plans`, `StrategyDecision` and full spec/provenance validators.
+Strategy with plan input also requires current `spec`, `source`, and `critical-features` bindings.
+
+No default template application, global route/material/camera mutation, no-op, or guessed plan is
+emitted. Missing concrete admissible proposals yields an empty candidate list, not an executable
+fallback. CS2 global `materials`, `cs2Intake.route`, and `referenceCamera` changes cannot be
+expressed under the current component-only strategy application contract and remain blocked.
+`--unlocked` is trusted base-caller input, not authorization by itself.
+
+Repair requires a fresh strict failure and wraps only an eligible concrete plan as
+`{id, hypothesis, action, plan, permissions}`, with the same plan id and `action: refine-spec`.
+It does not synthesize `request-input` as a fake executable plan. The base chooses request-input
+when no candidate is admissible and still verifies the complete failure envelope, actual
+permissions, revision, locks, shared deadline/counters and post-trial gates. Snapshots and
+candidates never authorize canonical continuation or establish successful repair.

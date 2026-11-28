@@ -3,11 +3,14 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import math
 import os
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from cs2_review_contract import TERMINAL_THRESHOLDS, validate_terminal_thresholds
 
 REQUIRED_SCENE_KEYS = {
     "version",
@@ -22,16 +25,6 @@ REQUIRED_SCENE_KEYS = {
     "rendererVersion",
     "calibration",
     "thresholds",
-}
-REQUIRED_THRESHOLDS = {
-    "silhouetteIoU",
-    "aspectRatioDelta",
-    "scaleDelta",
-    "projectionCoverage",
-    "finishMaterialResponse",
-    "identityDetail",
-    "paintedRegion",
-    "maxOrbitCollapseRatio",
 }
 
 # The closed deferrable set: the gates whose metrics are produced by the projection bake and so
@@ -65,16 +58,46 @@ def load_review_scene(path: Path) -> dict[str, Any]:
     missing = REQUIRED_SCENE_KEYS - payload.keys()
     if missing:
         raise ValueError("review scene is missing: " + ", ".join(sorted(missing)))
-    thresholds = payload.get("thresholds")
-    if not isinstance(thresholds, dict) or not REQUIRED_THRESHOLDS.issubset(thresholds):
-        raise ValueError("review scene thresholds are incomplete")
+    validate_terminal_thresholds(payload.get("thresholds"))
     if payload.get("version") != 1:
         raise ValueError("unsupported review scene version")
     return payload
 
 
+def _pass_scene(manifest: dict[str, Any]) -> dict[str, Any]:
+    from cs2_manifest import validate_manifest
+    from cs2_review_contract import validate_review_scene
+
+    if not validate_manifest(manifest) or manifest.get("state") != "proceed":
+        raise ValueError("reviewScene requires a valid, admitted CS2 manifest")
+    source = manifest.get("reviewScene")
+    if not isinstance(source, dict) or not isinstance(source.get("orbitViewpoints"), list):
+        raise ValueError("manifest reviewScene is missing or invalid")
+    errors = validate_review_scene(source)
+    if errors:
+        raise ValueError("manifest reviewScene: " + "; ".join(errors))
+    if (any(not isinstance(source.get(key), dict) or not source[key]
+            for key in ("camera", "objectTransform"))
+            or not isinstance(source.get("resolution"), list) or len(source["resolution"]) != 2):
+        raise ValueError("manifest reviewScene camera, transform or resolution is invalid")
+    views = manifest.get("sourceViews")
+    if not views or not isinstance(views[0], dict) or not views[0].get("path"):
+        raise ValueError("manifest reviewScene requires a declared reference")
+    return {
+        "version": 1, "fixtureId": "manifest-per-pass-v1", "reference": views[0]["path"],
+        "identity": {"family": manifest.get("itemFamily"), "subtype": manifest.get("subtype")},
+        "camera": source["camera"], "transform": source["objectTransform"],
+        "environment": {"hash": source["environmentHash"], "exposure": source["exposure"],
+                        "toneMapping": source["toneMapping"]},
+        "resolution": {"width": source["resolution"][0], "height": source["resolution"][1]},
+        "background": source["background"], "rendererVersion": source["rendererVersion"],
+        "calibration": {"status": "manifest-policy-only-not-authenticated-renderer-evidence"},
+        "thresholds": dict(TERMINAL_THRESHOLDS),
+    }
+
+
 def _number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def _failed_threshold(metrics: dict[str, Any], key: str, threshold: float, *, maximum: bool) -> bool:
@@ -170,6 +193,7 @@ def evaluate_knife_review(
     *,
     allow_deferrals: bool = False,
 ) -> dict[str, Any]:
+    validate_terminal_thresholds(review_scene.get("thresholds"))
     thresholds = review_scene["thresholds"]
     deferrals = _load_deferrals(inputs)
     failed: list[str] = []
@@ -182,6 +206,11 @@ def evaluate_knife_review(
     # item whose geometry the agent inferred, which is the case this plugin now serves.
     if manifest.get("state") != "proceed":
         failed.append(f"manifest-state:{manifest.get('state', 'missing')}")
+    if manifest.get("extensions", {}).get("routeSelection"):
+        # A matching route hash cannot launder a missing/negative classification.
+        from cs2_manifest import _classification_error
+        if _classification_error(manifest.get("classification")):
+            failed.append("manifest-state:classification-veto")
 
     # Strict is the default: a deferral request is itself refused, and an unknown or
     # non-deferrable key is a named failure in either mode -- a typo must not defer nothing while
@@ -353,15 +382,19 @@ class _EnvelopeParser(argparse.ArgumentParser):
 
 def main(argv: list[str] | None = None) -> int:
     parser = _EnvelopeParser(description="Evaluate the blocking CS2 review contract")
-    parser.add_argument("--manifest", type=Path, required=True, help="validated cs2-intake.json")
-    parser.add_argument("--metrics", type=Path, required=True, help="render/review metrics JSON")
+    parser.add_argument("--manifest", type=Path, help="validated cs2-intake.json (per-pass evaluation)")
+    parser.add_argument("--metrics", type=Path, help="render/review metrics JSON (per-pass evaluation)")
+    parser.add_argument("--workspace", type=Path, default=Path.cwd())
+    parser.add_argument("--terminal-request", help="versioned immutable run descriptor, or fixed discovery locator")
+    parser.add_argument("--prepare-scene", action="store_true",
+                        help="produce per-pass scene policy from the current manifest; grants no terminal authority")
     parser.add_argument(
         "--scene",
         type=Path,
-        default=Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "knife_review_scene.json",
-        help="versioned review scene fixture",
+        default=None,
+        help="current workspace review scene; terminal mode checks exact reproducibility",
     )
-    parser.add_argument("--out", type=Path, required=True, help="output review report JSON")
+    parser.add_argument("--out", type=Path, help="required per-pass output; forbidden in terminal request mode")
     # Strict is the DEFAULT: with no flag, deferral requests are refused and null metrics fail.
     # Only domain.json's per-pass row carries this flag; gates.json stays flagless, so a
     # copy-pasted or hand-edited terminal row fails closed, never open (design D1).
@@ -375,9 +408,29 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.terminal_request:
+            if args.manifest or args.metrics or args.prepare_scene or args.allow_deferrals or args.scene or args.out:
+                raise ValueError("terminal request cannot be combined with authored metrics, scene, output or deferrals")
+            from cs2_gate_request import replay_request
+            report, evidence = replay_request(args.workspace, args.terminal_request)
+            passed = report["verdict"] == "pass"
+            _print_envelope("pass" if passed else "fail", list(report["failedGates"]), evidence)
+            return 0 if passed else 1
+        if args.out is None:
+            raise ValueError("--out is required outside terminal request mode")
+        if args.prepare_scene:
+            if args.manifest is None or args.metrics or args.allow_deferrals:
+                raise ValueError("--prepare-scene requires only --manifest and --out")
+            scene = _pass_scene(_load_object(args.manifest, "manifest"))
+            _write_json_atomic(args.out, scene)
+            print(json.dumps({"kind": "img2.cs2-pass-scene", "version": 1,
+                              "scene": str(args.out), "terminalAuthority": False}))
+            return 0
+        if args.manifest is None or args.metrics is None:
+            raise ValueError("--manifest and --metrics are required outside terminal replay")
         manifest = _load_object(args.manifest, "manifest")
         metrics = _load_object(args.metrics, "metrics")
-        scene = load_review_scene(args.scene.expanduser())
+        scene = load_review_scene((args.scene or Path("cs2-review-scene.json")).expanduser())
         report = evaluate_knife_review(manifest, metrics, scene, allow_deferrals=args.allow_deferrals)
         _write_json_atomic(args.out, report)
         passed = report["verdict"] == "pass"

@@ -5,6 +5,68 @@ All notable changes to **plugin-cs2** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Paired fixed-selector terminal request ABI v1: canonical global discovery or immutable
+  run descriptor, strict same-run SHA bindings, deterministic plugin-only no-clobber
+  report publication and full replay-only verdict evidence. No standalone authority.
+
+- Per-pass scene production from the current admitted manifest before the literal
+  domain review command, with useful refusal for absent/invalid scene policy.
+- Python 3.10/3.12 synthetic-subset CI with an isolated HOME and source snapshot that
+  omits historical/rights-unverified fixtures. Executes literal domain pass and gate
+  commands using fictional pixels/protocol inputs; claims no real renderer authority.
+
+- D3 local `route.json` for the CS2 spec-augmentation profile and an explicit trusted-base
+  route handoff with canonical digest, image, object and pinned-provider checks. A matching
+  digest provides integrity only, not proof of base validation or CS2 identity.
+- Offline four-group evidence snapshots with SHA256 freshness/path checks, strict report
+  recomputation and exact shared-schema strategy/repair plans backed by concrete hash-bound
+  successor specs and explicit trusted scope. No guessed permission/provenance, implicit
+  template/global-field edit, no-op or executable request-input placeholder is emitted.
+- Standalone regression cases for routed look-alikes, spoofed route/hash pairs, classification
+  vetoes, stale evidence and unchanged finish/detail enforcement.
+- A callable production terminal producer with a narrow program-owned base-host
+  boundary, pinned-input replay CLI, and deterministic silhouette, annotated
+  colour/detail, orbit-area and matched-lighting material-response measurements.
+  Missing real source observations/annotations refuse with named fields; no route
+  probability, invented semantic score or pixel-equality fraud heuristic is used.
+  Synthetic regression fixtures explicitly carry no renderer/expert authority.
+
+### Fixed
+
+- Lowered-threshold decision-adapter regression coverage now asserts the frozen producer
+  refusal and independently rejects an attacker-edited matching passing report.
+- Strict/permissive oracle comparison uses the same declared-version normalization in
+  both modes; every other historical payload byte and the original fixtures remain frozen.
+
+### Changed
+
+- Preparatory routed/terminal fixes declared 0.2.0; the paired request ABI now declares
+  0.3.0. No release tag is created. Historical byte-oracle tests adjust only the expected
+  producer-version stamp; all other frozen bytes/assertions and original payloads remain.
+- Per-pass scene loading and direct evaluation now enforce exact program-owned terminal
+  thresholds, rejecting altered/missing/extra/non-numeric/non-finite policy rather than
+  accepting caller-controlled quality floors. Legitimate missing-only deferrals remain.
+- Full historical fixture gates remain unverified under fictional-only authorization.
+  The exact terminal gate row changes only for the coordinated request ABI. Core pin,
+  non-routed trusted host production and authenticated context/run verification remain
+  paired integration requirements; old/new versions fail closed.
+
+- Manifest intake now enforces the documented independent classification floor (0.82), timeout,
+  evidence/provider requirements and explicit non-CS2 veto. Routed resume rechecks classification.
+  Routed augmentation/review cannot bypass classification by forging a manifest's `proceed`.
+- Reference views retain real-byte SHA256 alongside existing perceptual hash provenance.
+  Base journal/lease validation, crop handoff, actual matched render/measurement producers and
+  decision application remain base integration responsibilities; no live quality result is claimed.
+- Terminal gates now recompute current workspace capture/config evidence and bind
+  the existing base child artifact, rather than judging a bundled knife scene or
+  trusting hand-authored terminal metrics. Original thresholds remain frozen.
+  Host classifier/source provenance and journal-authenticated semantic review are
+  separate required trust boundaries, not authority granted by matching digests.
+
 ## [0.1.2] — 2026-09-02
 
 ### Changed

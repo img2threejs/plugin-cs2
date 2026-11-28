@@ -44,10 +44,17 @@ previously applied CS2's quality floors to anything whose name contained one of 
 There is no `--cs2` flag. The base pulls this plugin's augmentation automatically once the domain
 resolves.
 
+The base may also select `profile:cs2@<resolvedSha>` through a recorded `routeDecision`.
+This expresses profile intent, **not CS2 identity**: the independent authoritative classification
+step still runs and can veto a look-alike, missing evidence, confidence below 0.82, or a timeout.
+`route.json` declares a local `spec-augmentation` candidate; the augmentation is consumed inside
+the base child, whose terminal output is a `3d-object`, not an augmentation handed to composition.
+See the intake contract for the trusted-caller handoff and offline decision snapshots.
+
 ## What it contributes
 
-Four setup steps spliced immediately **before** the base's `local-spec-search`, and one blocking gate
-before `ai-review-recorded` in **every** correction pass.
+Four setup steps spliced immediately **before** the base's `local-spec-search`, plus a scene producer
+and per-pass review before `ai-review-recorded`. The terminal `plugin-gates` review remains blocking.
 
 | Step | Actor | What it does |
 |---|---|---|
@@ -55,6 +62,7 @@ before `ai-review-recorded` in **every** correction pass.
 | `cs2-authoritative-classification` | agent | Obtain an authoritative family/subtype record into `classification.json`. Guessing the subtype from the image is the failure this step exists to prevent. |
 | `cs2-manifest` | program | Builds and validates `cs2-intake.json`. Records `componentAdapter` when this plugin has geometry for the family, or `geometrySource: agent-inferred` when it does not. |
 | `cs2-spec-augmentation` | program | Emits `spec-augmentation.json` — the artifact the base **pulls** during spec authoring. |
+| `cs2-review-scene` | program | Refreshes `cs2-review-scene.json` from the current validated manifest's scene policy before each pass; never grants terminal authority. |
 | `cs2-review` | gate | Machine-readable verdict. **Blocking**: a failed verdict stops `continue` even when the global fidelity score passes. |
 
 It also contributes the `cs2` evidence collection to the base's local spec search.
@@ -109,11 +117,15 @@ skills/                     per-subtype notes
 |---|---|---|
 | `cs2_manifest.py` | yes | Builds and validates `cs2-intake.json` |
 | `cs2_review.py` | yes | The blocking review gate |
+| `cs2_measure.py` | diagnostics | Measures silhouettes from one reference-view capture and two distinct orbit captures, checking recorded hashes; does not authenticate producers or grant terminal approval |
 | `emit_spec_augmentation.py` | yes | Emits the artifact the base pulls |
 | `cs2_spec_template.py` | yes | The finish, material and component recipe |
 | `cs2_adapters.py` | yes | Per-family geometry adapters |
 | `cs2_foundation.py` | yes | Identity resolution: explicit → resolved → classification |
+| `cs2_routing.py` | routed entry | Checks the base caller's route digest, object, reference and provider pin; never classifies |
+| `cs2_decision_adapter.py` | decision inputs | Hash-checks current evidence and exposes bounded plans/repairs without consulting a provider |
 | `cs2_review_contract.py` | yes | Review scene and the golden thresholds |
+| `cs2_terminal.py` | terminal producer/replay | Computes artifact-bound measurements from approved source regions and matched-light observations; invokes only the program-owned base host |
 | `detect_cs2.py` | no | Heuristic detection, for triage only — never for routing |
 | `locate_cs2_vpk.py` | no | Finds a local CS2 install's `pak01_dir.vpk` |
 | `extract_cs2_textures.py` | no | Extracts authored paint textures from **your own** install |
@@ -123,6 +135,101 @@ The optional four are **exactness upgrades**. Every one degrades gracefully: a m
 extractor binary, a subprocess error or a non-zero exit all return `{"status": "fallback", "reason": …}`
 so the pipeline falls back to the image-only path rather than producing a wrong answer. See
 [SECURITY.md](SECURITY.md) before using them.
+
+`cs2_measure.py --workspace CHILD --intake cs2-intake.json --classification classification.json
+--artifact artifact.json --capture reference/capture.json --capture orbit-left/capture.json
+--capture orbit-right/capture.json` writes diagnostic JSON to stdout. The first capture is the
+reference view. Paths are relative to the child workspace; capture records and the reference image
+must already exist. Capture, config and renderer report must agree on camera, viewport, frame and
+delivery digest. These consistency checks do not authenticate the renderer. Identical pixels do not
+prove or disprove capture authenticity; measurements do not replace terminal-authority gates.
+
+### Production terminal handoff
+
+The base calls `produce_terminal(workspace, inputs=..., host=...)` from
+`tools/cs2_terminal.py`. It does not import the base implementation or launch a
+plugin-selected privileged command. The host is an actual program-owned object:
+
+```python
+host.verify_classification(workspace, *, classification, reference, intake, artifact)
+host.verify_sources(workspace, *, sources, context)
+host.capture(workspace, *, artifact, delivery, config, output_dir)  # returns {path, sha256}
+host.verify_quality(workspace, *, context)
+```
+
+Verification methods raise on refusal. They must authenticate exact current evidence,
+not accept a JSON provider string or a self-hashed renderer report. `capture` invokes
+the base's fixed `capture_delivered_glb` producer with independently approved Chrome
+and Three module pins. `verify_quality` must consume journal-authenticated review of
+the same artifact, source, cameras, captures, annotated regions, metrics and frozen
+thresholds. A callable or a stored `host-reviewed` string alone is not authority;
+the parent independently revalidates that boundary before accepting a child.
+
+`inputs` contains `intake`, `classification`, `artifact`, `delivery`, `sources`
+bindings, each exactly `{path, sha256}`, three ordered `configs` bindings (reference,
+orbit-left, orbit-right), and `passId`. All paths are child-workspace relative.
+Production always captures afresh; replay additionally requires `captures` (three
+capture-record bindings) and `materialCaptures` in source-observation order.
+
+The bound `sources` JSON contains:
+
+- `reference`: the exact current intake image binding.
+- Nonempty `regions` and `criticalFeatures`: independently approved annotations,
+  each `{id, bounds: [left, top, right, bottom]}` in normalized image coordinates.
+  These are real named source observations, not automatically invented colour bins.
+- `materialViews`: at least two `{source: binding, config: binding}` observations
+  of the real source under distinct known lighting states. Camera, transform,
+  viewport, background and frame must match the reference capture configuration.
+  The host must approve source provenance and calibration; generated GLB renders
+  are not independent source measurements.
+
+The producer measures silhouette/proportions, annotated RGB agreement and coverage,
+local feature luminance correlation, orbit subject-area ratios, and material
+RGB response across matched lighting states. The material score is the minimum
+region score across lighting pairs: normalized RGB-delta agreement, absolute RGB
+agreement and rendered coverage. Source response below two RGB levels is
+unmeasurable, never a passing default. Pixel equality is legitimate and is not
+rejected as capture fraud. Structural resemblance **does not establish asset
+identity**, nor do these RGB measurements recover float, paint seed or physical
+roughness. Authenticated classification and semantic review remain required.
+
+Missing source observations, annotations or config fields produce named refusals;
+there is no prose/confidence fallback. A single arbitrary reference cannot establish
+material response. Failed measured thresholds remain failures.
+
+Default output is `.img2/cs2-terminal/{inputs,metrics,scene,report,context}.json`,
+plus `handoff.json` only after strict measurements and host review. This handoff
+references the existing base D18 artifact; it neither replaces it nor grants
+parent terminal authorization. A rejected run retains its failed report.
+Production requires a fresh output directory. If journal review is not yet available,
+the exact captures and context remain available after the host refuses review.
+Consult the shared controller against that saved context outside the parent
+transaction, then call `finalize_terminal(workspace, inputs=persisted_inputs,
+host=host, output_dir=...)`. Finalization reauthenticates and replays existing
+evidence without recapturing or changing the reviewed subject.
+The blocking gate uses the versioned [terminal request ABI](docs/cs2/terminal-request-v1.md),
+not fixed-root input/scene aliases or a historical fixture. Core publishes immutable
+`run-<32 lowercase hex>/gate-request.json` with same-run SHA-bound inputs/scene,
+then binds that request in its authenticated context. Its global discovery copy at
+`.img2/cs2-terminal/gate-request.json` grants no authority.
+
+```sh
+python3 PLUGIN/tools/cs2_review.py --workspace CHILD \
+  --terminal-request .img2/cs2-terminal/run-RUN_HEX/gate-request.json
+```
+
+Only the canonical global locator or a canonical run descriptor is accepted. The plugin
+alone publishes deterministic same-run `gate-review.json`; core must not prewrite it.
+Different existing report bytes refuse, while identical replay does not overwrite.
+The old `--terminal-inputs` review CLI is removed. The low-level replay CLI remains
+separate and cannot authorize a terminal result.
+
+Replay exit zero means measured gates passed, not authenticated terminal approval.
+Real smoke prerequisites are a valid self-contained delivered GLB, approved host
+Chrome/Three pins, calibrated source/config observations, approved region/feature
+annotations, authoritative classification provenance and a current authenticated
+quality-review record. Synthetic unit fixtures supply none of that authority.
+
 
 ### Geometry coverage
 
@@ -155,18 +262,15 @@ measurably not good enough, not preemptively.
 
 ### Tune the review thresholds
 
-`tools/cs2_review_contract.py` → `GOLDEN_THRESHOLDS`:
+`tools/cs2_review_contract.py` keeps the legacy projection recipe's `GOLDEN_THRESHOLDS`
+separate from `TERMINAL_THRESHOLDS`, the exact program-owned review policy. Both scene-file
+loading and direct evaluation reject missing/extra keys, changed values, booleans, strings,
+and non-finite thresholds. Editing a scene cannot lower or raise that policy.
 
-```python
-silhouetteIoU 0.85 · aspectRatioDelta 0.05 · scaleDelta 0.08
-paintedRegionMask 0.85 · colorRegion 0.80 · patternRegion 0.75 · wearRegion 0.70
-```
-
-Two things to know before you touch these. **Raising a threshold is safe; lowering one is a real
-loosening** of the only domain gate in the run. And the oracle replay
-(`tests/test_cs2_oracle_replay.py`) asserts byte equality against a completed reconstruction — any
-threshold change fails it, deliberately. Re-freeze the fixture only when you can say why the new
-verdict is the correct one.
+The domain scene producer translates the current manifest's validated `reviewScene`
+camera, transform and environment into the per-pass evaluator schema; it does not load
+the historical test fixture or authenticate a renderer. Missing/invalid source policy
+fails before publishing a scene. Terminal review still reconstructs its scene from captures.
 
 ### Change where the steps land in the pipeline
 
@@ -190,8 +294,8 @@ Drop it under `docs/cs2/` or `docs/cs2-anatomy/` — both are already `optional_
 ## Tests
 
 ```bash
-python3 -m pytest tests -q                              # 36 passed
-python3 -m unittest discover -s tests -p 'test_*.py'    # same suite, stdlib runner
+python3 scripts/test_synthetic.py                    # fictional, fixture-independent subset; isolated HOME
+python3 -m unittest discover -s tests -p 'test_*.py'  # original full gate; includes historical fixtures
 ```
 
 The suite runs **standalone** — it does not need the base skill's test tree. It includes
@@ -200,11 +304,24 @@ The suite runs **standalone** — it does not need the base skill's test tree. I
 `test_suite_integrity.py`, which asserts the collected count against a recorded floor — a single
 indentation error once silently dropped three tests here, and only counting caught it.
 
+The synthetic subset physically excludes `tests/fixtures/` from its temporary source
+snapshot. CI runs this subset on Python 3.10 and 3.12, including the literal expanded
+domain pass commands and declared terminal gate with synthetic captures. It is **not**
+the full historical baseline or authenticated host/render evidence. Historical fixture
+provenance and the full gate remain unverified under the fictional/nonfunctional-only
+restriction; tests and the full-suite count floor are retained, not disabled.
+
+Plugin source declares version **0.3.0** for the paired fixed-selector gate ABI; no tag,
+publication or installer pin is implied. Old/new core-plugin pairs fail closed until
+the exact new gate row, provider commit and full envelope bindings are reviewed together.
+Non-routed production is evidence-only, never standalone terminal acceptance; an
+authored-metrics fallback is not allowed.
+
 ## Limits
 
 - Paint seed and float **cannot** be recovered from an image. They are approximated and must be
   reported as such.
-- `detect_cs2.py` is a heuristic for triage. Routing is by declared domain, never by detection.
+- `detect_cs2.py` is triage only. Declared or base-validated routed profile intent never replaces authoritative classification.
 - The optional exactness tools need your own legal CS2 install and, for texture extraction, a
   Source2Viewer-CLI binary you supply.
 
